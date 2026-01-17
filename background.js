@@ -70,6 +70,8 @@ chrome.tabs.onCreated.addListener(async (tab) => {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === "organize_windows") {
         organizeWindows();
+    } else if (message.action === "CLEAR_CHAOS") {
+        clearChaos();
     }
 });
 
@@ -148,5 +150,26 @@ async function organizeWindows() {
             state: "normal" // Ensure it's not maximized/minimized
         });
     }
+}
+
+async function clearChaos() {
+    console.log("Clearing chaos - closing all windows except camera");
+    const windows = await chrome.windows.getAll({ populate: true, windowTypes: ['normal'] });
+    
+    for (const win of windows) {
+        // Check if this window has camera.html open
+        const hasCamera = win.tabs?.some(tab => tab.url?.includes('camera.html'));
+        
+        if (!hasCamera) {
+            // Close windows that don't have camera.html
+            chrome.windows.remove(win.id).catch(err => 
+                console.log("Could not close window:", err)
+            );
+        }
+    }
+    
+    // Reset size tracker
+    lastWidth = 1000;
+    lastHeight = 800;
 }
 

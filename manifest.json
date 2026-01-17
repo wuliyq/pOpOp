@@ -8,6 +8,9 @@
     "storage",
     "system.display"
   ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
   "background": {
     "service_worker": "background.js"
   },
@@ -19,5 +22,11 @@
       "48": "icons/icon48.png",
       "128": "icons/icon128.png"
     }
-  }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["camera.html", "camera.js", "lib/*"],
+      "matches": ["<all_urls>"]
+    }
+  ]
 }
