@@ -1,5 +1,5 @@
 // Use CDN version of MediaPipe
-import { HandLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3";
+import { HandLandmarker, FilesetResolver } from "./lib/task_vision.mjs";
 
 let handLandmarker;
 let lastX = 0;
@@ -13,24 +13,29 @@ function updateStatus(message) {
 }
 
 async function setupDetection() {
-    try {
-        updateStatus("Loading MediaPipe...");
-        
-        // Initialize the vision tasks with CDN WASM files
-        const vision = await FilesetResolver.forVisionTasks(
-            "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm"
-        );
-        
-        updateStatus("Creating hand detector...");
-        
-        handLandmarker = await HandLandmarker.createFromOptions(vision, {
-            baseOptions: { 
-                modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
-                delegate: "GPU" 
-            },
-            runningMode: "VIDEO",
-            numHands: 1
-        });
+    
+    updateStatus("Loading MediaPipe...");
+    
+    // Initialize the vision tasks with CDN WASM files
+    const vision = await FilesetResolver.forVisionTasks(
+        "./lib/vision_wasm.wasm"
+    );
+    
+    updateStatus("Creating hand detector...");
+    
+    handLandmarker = await HandLandmarker.createFromOptions(vision, {
+        baseOptions: { 
+            modelAssetPath: "./lib/hand_landmarker.task",
+            delegate: "GPU" 
+        },
+        runningMode: "VIDEO",
+        numHands: 1
+    });
+
+
+    
+}
+
 function startCamera() {
     const video = document.getElementById("webcam");
     updateStatus("Requesting camera access...");
@@ -45,6 +50,8 @@ function startCamera() {
             console.error("Camera access denied:", error);
             updateStatus("Camera denied: " + error.message);
         });
+    }
+    
 async function predictWebcam() {
     const video = document.getElementById("webcam");
     
@@ -75,15 +82,5 @@ async function predictWebcam() {
 }
 
 // Start the detection when page loads
-setupDetection();
-        if (movement > 0.25) { // Sensitivity: 0.25 is a fast move
-            console.log("Wave detected! Clearing chaos...");
-            chrome.runtime.sendMessage({ action: "CLEAR_CHAOS" });
-        }
-        lastX = wristX;
-    }
-    requestAnimationFrame(predictWebcam);
-}
-
-// Start the detection when page loads
+// startCamera()
 setupDetection();
