@@ -53,7 +53,8 @@ document.getElementById('collapseBtn').addEventListener('click', async () => {
     
     chrome.runtime.sendMessage({ 
         action: "collapse_tabs",
-        targetWindowId: lastFocused.id 
+        targetWindowId: lastFocused.id,
+        trigger: "popup"
     });
     document.getElementById('status').innerText = "Collapsing all tabs into one window...";
 });
