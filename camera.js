@@ -5,6 +5,7 @@ let gestureRecognizer;
 let lastClearTs = 0;
 let overlayCtx;
 let overlayCanvas;
+let lastStableGesture = null; // last confident gesture label
 
 function ensureOverlayReady(video) {
     if (!overlayCanvas) {
@@ -49,7 +50,7 @@ async function setupDetection() {
                 delegate: "GPU"
             },
             runningMode: "VIDEO",
-            numHands: 2
+            numHands: 1
         });
 
         updateStatus("Detector ready. Starting camera...");
@@ -80,7 +81,7 @@ function startCamera() {
         });
 }
 
-function predictWebcam() {
+async function predictWebcam() {
     const video = document.getElementById("webcam");
 
     if (!gestureRecognizer) {
@@ -96,6 +97,7 @@ function predictWebcam() {
     const topGesture = results.gestures?.[0]?.[0];
     const gestureName = topGesture?.categoryName;
     const score = topGesture?.score ?? 0;
+    const isNone = gestureName === "None" || gestureName === "NoGesture";
 
     if (overlayCtx && results.landmarks?.length) {
         overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
@@ -123,17 +125,35 @@ function predictWebcam() {
         overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
     }
 
-    if (gestureName && score > 0.5) {
+    if (gestureName && !isNone && score > 0.6) {
+        if (gestureName !== lastStableGesture) {
+            updateStatus(`Gesture: ${gestureName} (${score.toFixed(2)})`);
+        }
+
+        // Transition-based controls (allow gaps where no gesture was detected)
+            if (lastStableGesture === "Open_Palm" && gestureName === "Closed_Fist") {
+                const windows = await chrome.windows.getAll({ windowTypes: ['normal'] });
+                const lastFocused = await chrome.windows.getCurrent() || windows[0];
+
+                // Ensure CLEAR_CHAOS finishes before collapsing
+                await chrome.runtime.sendMessage({ action: "CLEAR_CHAOS" });
+
+                chrome.runtime.sendMessage({ 
+                    action: "collapse_tabs",
+                    targetWindowId: lastFocused.id 
+                });
+                updateStatus("✊ Closed Fist detected → cleared chaos, collapsing tabs");
+        } else if (lastStableGesture === "Closed_Fist" && gestureName === "Open_Palm") {
+            chrome.runtime.sendMessage({ action: "organize_windows" });
+            updateStatus("🖐️ Open Palm detected → organizing windows");
+        }
+
         if (Date.now() - lastClearTs > 2000) {
-            console.log(`Gesture ${gestureName} detected (score ${score.toFixed(2)}) — clearing chaos`);
-            updateStatus(`✋ Gesture: ${gestureName} (clearing chaos...)`);
             chrome.runtime.sendMessage({ action: "CLEAR_CHAOS" });
             lastClearTs = Date.now();
-
-            setTimeout(() => {
-                updateStatus("Camera ready! Gesture to clear chaos.");
-            }, 1500);
         }
+
+        lastStableGesture = gestureName;
     }
 
     requestAnimationFrame(predictWebcam);
