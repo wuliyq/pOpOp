@@ -1,5 +1,4 @@
 // Variable to track the size of the "last" window for the recursive shrinking effect
-
 let lastWidth = 1000; 
 let lastHeight = 800;
 let isSpawningLoop = false; // Flag to prevent infinite loop
@@ -21,7 +20,7 @@ async function getPrimaryWorkArea() {
 }
 
 // ==========================================
-// 1. HELPER: THE CHAOS LOGIC (Shared)
+// 1. USELESS MODE
 // ==========================================
 async function detachAndStack(tab) {
     // Ignore tabs created during the spawning loop to prevent infinite recursion
@@ -82,7 +81,7 @@ async function loopToCreateWindows(tab) {
 
         // Create new tab and window
         const gifURL = chrome.runtime.getURL("gif.html");
-        await chrome.windows.create({
+        const createdWindow = await chrome.windows.create({
             url: gifURL,
             type: "popup",
             width: randomWidth,
@@ -91,15 +90,19 @@ async function loopToCreateWindows(tab) {
             top: randomTop,
             focused: true
         });
+        
+        // Store ID of created junk window for potential cleanup later
+        await chrome.storage.local.get({ junkWindows: [] }, (result) => {
+            const updatedList = result.junkWindows;
+            updatedList.push(createdWindow.id);
+            chrome.storage.local.set({ junkWindows: updatedList });
+        });
 
         // Small delay between windows for visual "pop" effect
         await new Promise(resolve => setTimeout(resolve, 100));
     }
 }
 
-// ==========================================
-// 2. FUNCTION TO PROCESS EXISTING TABS
-// ==========================================
 async function triggerImmediateChaos() {
     // Get ALL tabs currently open in normal windows
     const tabs = await chrome.tabs.query({ windowType: 'normal' });
@@ -114,34 +117,7 @@ async function triggerImmediateChaos() {
 }
 
 // ==========================================
-// 3. LISTENERS
-// ==========================================
-
-// Listen for NEW tabs
-chrome.tabs.onCreated.addListener(async (tab) => {
-    const result = await chrome.storage.local.get("mode");
-    
-    if (result.mode === 'useless') {
-        detachAndStack(tab);
-    }
-});
-
-// Listen for MESSAGES (Popup Buttons)
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.action === "organize_windows") {
-        organizeWindows();
-    } 
-    else if (message.action === "activate_useless_mode") {
-        // This triggers the chaos on ALREADY opened tabs
-        triggerImmediateChaos();
-    }
-    else if (message.action === "collapse_tabs") {
-        collapseAllTabs(message.targetWindowId);
-    }
-});
-
-// ==========================================
-// 4. USEFUL MODE & CLEANUP LOGIC
+// 2. USEFUL MODE
 // ==========================================
 
 async function organizeWindows() {
@@ -206,16 +182,12 @@ async function organizeWindows() {
     }
 }
 
-async function collapseAllTabs(targetWindowId) {
-    const windows = await chrome.windows.getAll({ populate: true, windowTypes: ['normal'] });
-    if (windows.length === 0) return;
-    
+async function collapseAllTabs(targetWindowId) {    
     if (!targetWindowId) {
         targetWindowId = windows[0].id;
     }
     
     let allTabs = await chrome.tabs.query({});
-
     const tabsToMove = allTabs.map(tab => tab.id);
 
     for (const tabId of tabsToMove) {
@@ -234,9 +206,17 @@ async function clearChaos() {
     console.log("Clearing chaos - closing all windows except camera");
     const windows = await chrome.windows.getAll({ populate: true, windowTypes: ['normal'] });
     
-    const toClose = windows
-        .filter(win => !win.tabs?.some(tab => tab.url?.includes('camera.html')))
+    // Retrieve junk windows list
+    const result = await chrome.storage.local.get({ junkWindows: [] });
+    const junkWindowIds = result.junkWindows || [];
+    
+    // Get IDs of windows with camera open
+    const cameraWindowIds = windows
+        .filter(win => win.tabs?.some(tab => tab.url?.includes('camera.html')))
         .map(win => win.id);
+    
+    // Filter junkWindowIds to exclude camera windows
+    const toClose = junkWindowIds.filter(winId => !cameraWindowIds.includes(winId));
 
     for (const winId of toClose) {
         try {
@@ -248,53 +228,43 @@ async function clearChaos() {
         await new Promise(resolve => setTimeout(resolve, 200));
     }
     
+    // Clear the junk windows list from storage
+    await chrome.storage.local.set({ junkWindows: [] });
+    
     // Reset size tracker
     lastWidth = 1000;
     lastHeight = 800;
 }
 
-async function collapseAllTabs(targetWindowId) {
-    // Get all windows with their tabs
-    const windows = await chrome.windows.getAll({ populate: true, windowTypes: ['normal'] });
-    
-    if (windows.length === 0) return;
-    
-    // If no target window specified, use the first one
-    if (!targetWindowId) {
-        targetWindowId = windows[0].id;
-    }
-    
-    // Collect tabs from OTHER windows (not the current one)
-    const tabsToMove = [];
-    for (const win of windows) {
-        if (win.id !== targetWindowId) {
-            for (const tab of win.tabs) {
-                tabsToMove.push(tab.id);
-            }
-        }
-    }
+// ==========================================
+// 3. LISTENERS
+// ==========================================
 
-    console.log(tabsToMove);
+// Listen for NEW tabs
+chrome.tabs.onCreated.addListener(async (tab) => {
+    const result = await chrome.storage.local.get("mode");
     
-    // Move all tabs from other windows to the current window
-    for (const tabId of tabsToMove) {
-        try {
-            await chrome.tabs.move(tabId, { windowId: targetWindowId, index: -1 });
-        } catch (error) {
-            console.error('Error moving tab:', error);
-        }
+    if (result.mode === 'useless') {
+        detachAndStack(tab);
     }
-    
-    // Focus the target window
-    await chrome.windows.update(targetWindowId, { focused: true, state: "normal" });
+});
 
-    // Maximize the target window to show all tabs clearly
-    await chrome.windows.update(targetWindowId, { state: "maximized" });
-}
+// Listen for MESSAGES (Popup Buttons)
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.action === "organize_windows") {
+        organizeWindows();
+    } 
+    else if (message.action === "activate_useless_mode") {
+        // This triggers the chaos on ALREADY opened tabs
+        triggerImmediateChaos();
+    }
+    else if (message.action === "collapse_tabs") {
+        collapseAllTabs(message.targetWindowId);
+    }
+});
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === "CLEAR_CHAOS") {
         clearChaos();
     }
 });
-

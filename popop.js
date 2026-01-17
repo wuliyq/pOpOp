@@ -49,7 +49,7 @@ document.getElementById('disableBtn').addEventListener('click', () => {
 document.getElementById('collapseBtn').addEventListener('click', async () => {
     // Get the last focused window (the one where popup was opened from)
     const windows = await chrome.windows.getAll({ windowTypes: ['normal'] });
-    const lastFocused = windows.find(w => w.focused) || windows[0];
+    const lastFocused = await chrome.windows.getCurrent() || windows[0];
     
     chrome.runtime.sendMessage({ 
         action: "collapse_tabs",
@@ -71,5 +71,3 @@ document.getElementById('cameraBtn').addEventListener('click', () => {
     });
     document.getElementById('status').innerText = "Camera opened! Wave to clear chaos.";
 });
-
-
