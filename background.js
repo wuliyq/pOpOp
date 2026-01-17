@@ -120,13 +120,24 @@ chrome.tabs.onCreated.addListener(async (tab) => {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === "organize_windows") {
         organizeWindows();
+    } else if (message.action === "collapse_tabs") {
+        collapseAllTabs(message.targetWindowId);
     }
 });
 
 async function organizeWindows() {
-    // Get all windows
-    const windows = await chrome.windows.getAll({ populate: false, windowTypes: ['normal'] });
-    const count = windows.length;
+    // Get all windows with their tabs
+    const windows = await chrome.windows.getAll({ populate: true, windowTypes: ['normal'] });
+    
+    // Collect all tabs from all windows
+    const allTabs = [];
+    for (const win of windows) {
+        for (const tab of win.tabs) {
+            allTabs.push({ tabId: tab.id, windowId: win.id });
+        }
+    }
+    
+    const count = allTabs.length;
     const { width: screenW, height: screenH, left: screenLeft, top: screenTop } = await getPrimaryWorkArea();
     
     // Calculate Grid (Columns and Rows)
@@ -136,8 +147,9 @@ async function organizeWindows() {
     const winW = Math.floor(screenW / cols);
     const winH = Math.floor(screenH / rows);
 
+    // Create or update windows for each tab
     for (let i = 0; i < count; i++) {
-        const win = windows[i];
+        const { tabId, windowId } = allTabs[i];
         
         // Calculate Grid Position
         const colIndex = i % cols;
@@ -146,13 +158,67 @@ async function organizeWindows() {
         const newLeft = screenLeft + colIndex * winW;
         const newTop = screenTop + rowIndex * winH;
 
-        chrome.windows.update(win.id, {
-            left: newLeft,
-            top: newTop,
-            width: winW,
-            height: winH,
-            state: "normal" // Ensure it's not maximized/minimized
-        });
+        // Check if this is the only tab in its window
+        const originalWindow = windows.find(w => w.id === windowId);
+        if (originalWindow && originalWindow.tabs.length === 1) {
+            // Just update the existing window
+            await chrome.windows.update(windowId, {
+                left: newLeft,
+                top: newTop,
+                width: winW,
+                height: winH,
+                state: "normal"
+            });
+        } else {
+            // Create a new window for this tab
+            await chrome.windows.create({
+                tabId: tabId,
+                left: newLeft,
+                top: newTop,
+                width: winW,
+                height: winH,
+                focused: false
+            });
+        }
     }
+}
+
+async function collapseAllTabs(targetWindowId) {
+    // Get all windows with their tabs
+    const windows = await chrome.windows.getAll({ populate: true, windowTypes: ['normal'] });
+    
+    if (windows.length === 0) return;
+    
+    // If no target window specified, use the first one
+    if (!targetWindowId) {
+        targetWindowId = windows[0].id;
+    }
+    
+    // Collect tabs from OTHER windows (not the current one)
+    const tabsToMove = [];
+    for (const win of windows) {
+        if (win.id !== targetWindowId) {
+            for (const tab of win.tabs) {
+                tabsToMove.push(tab.id);
+            }
+        }
+    }
+
+    console.log(tabsToMove);
+    
+    // Move all tabs from other windows to the current window
+    for (const tabId of tabsToMove) {
+        try {
+            await chrome.tabs.move(tabId, { windowId: targetWindowId, index: -1 });
+        } catch (error) {
+            console.error('Error moving tab:', error);
+        }
+    }
+    
+    // Focus the target window
+    await chrome.windows.update(targetWindowId, { focused: true, state: "normal" });
+
+    // Maximize the target window to show all tabs clearly
+    await chrome.windows.update(targetWindowId, { state: "maximized" });
 }
 
