@@ -31,7 +31,7 @@ chrome.tabs.onCreated.addListener(async (tab) => {
         // Check if we've hit the "too small" limit
         const shouldLoop = lastWidth <= 450;
         
-<<<<<<< HEAD
+
         if (shouldLoop) {
             // Reset sizes BEFORE the loop
             lastWidth = 1000; 
@@ -44,10 +44,10 @@ chrome.tabs.onCreated.addListener(async (tab) => {
                 width: lastWidth,
                 height: lastHeight,
                 left: randomOffset + 50,
-               Set flag to prevent infinite loop
-            isSpawningLoop = true;
+                // Set flag to prevent infinite loop
+                isSpawningLoop: true,
             
-            //  top: randomOffset + 50,
+                //  top: randomOffset + 50,
                 focused: false
             });
             
@@ -66,8 +66,8 @@ chrome.tabs.onCreated.addListener(async (tab) => {
                     height: randomHeight,
                     left: randomLeft,
             
-            // Reset flag after loop completes
-                isSpawningLoop = false;
+                // Reset flag after loop completes
+                    isSpawningLoop: false,
                     top: randomTop,
                     focused: false
                 });
@@ -91,7 +91,7 @@ chrome.tabs.onCreated.addListener(async (tab) => {
                 focused: true
             });
         }
-=======
+
         // Randomize position slightly
         const randomLeft = Math.floor(Math.random() * 200); 
         const randomTop = Math.floor(Math.random() * 200);
@@ -111,7 +111,6 @@ chrome.tabs.onCreated.addListener(async (tab) => {
         });
     } else if (result.mode === 'useful') {
         organizeWindows();
->>>>>>> dd8b13f1ac2566ff0b5d756d5b6a4779933efcae
     }
 });
 

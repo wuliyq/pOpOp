@@ -12,6 +12,7 @@
     "service_worker": "background.js"
   },
   "action": {
+    "default_title": "pOpOp",
     "default_popup": "popop.html",
     "default_icon": {
       "16": "icons/icon16.png",
