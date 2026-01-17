@@ -1,11 +1,29 @@
-// Use CDN version of MediaPipe
-import { HandLandmarker, FilesetResolver } from "./assets/mediapipe/vision_bundle.js";
+// Local MediaPipe bundle (packaged for CSP-safe use)
+import { GestureRecognizer, FilesetResolver, DrawingUtils } from "./assets/mediapipe/vision_bundle.js";
 
-let handLandmarker;
-let lastX = 0;
-let lastGestureTime = 0;
-let wasFist = false; // Track fist state for gesture transition
-const GESTURE_COOLDOWN = 2000; // Prevent accidental double-triggers
+let gestureRecognizer;
+let lastClearTs = 0;
+let overlayCtx;
+let overlayCanvas;
+let lastStableGesture = null; // last confident gesture label
+
+function ensureOverlayReady(video) {
+    if (!overlayCanvas) {
+        overlayCanvas = document.getElementById("overlay");
+    }
+    if (overlayCanvas) {
+        // If intrinsic sizes are missing, fall back to displayed size or viewport
+        const width = video.videoWidth || video.clientWidth || overlayCanvas.clientWidth || window.innerWidth;
+        const height = video.videoHeight || video.clientHeight || overlayCanvas.clientHeight || window.innerHeight;
+        if (!overlayCanvas.width || !overlayCanvas.height) {
+            overlayCanvas.width = width;
+            overlayCanvas.height = height;
+        }
+        if (!overlayCtx) {
+            overlayCtx = overlayCanvas.getContext("2d");
+        }
+    }
+}
 
 function updateStatus(message) {
     const statusEl = document.getElementById("status");
@@ -70,15 +88,16 @@ async function setupDetection() {
     try {
         updateStatus("Loading MediaPipe...");
 
-        const vision = await FilesetResolver.forVisionTasks(
-            "./assets/mediapipe/wasm"
-        );
+        const wasmPath = chrome.runtime.getURL("assets/mediapipe/wasm");
+        const modelPath = chrome.runtime.getURL("assets/models/gesture_recognizer.task");
 
-        updateStatus("Creating hand detector...");
+        const vision = await FilesetResolver.forVisionTasks(wasmPath);
 
-        handLandmarker = await HandLandmarker.createFromOptions(vision, {
+        updateStatus("Creating gesture recognizer...");
+
+        gestureRecognizer = await GestureRecognizer.createFromOptions(vision, {
             baseOptions: {
-                modelAssetPath: "assets/models/hand_landmarker.task",
+                modelAssetPath: modelPath,
                 delegate: "GPU"
             },
             runningMode: "VIDEO",
@@ -95,12 +114,16 @@ async function setupDetection() {
 
 function startCamera() {
     const video = document.getElementById("webcam");
+    overlayCanvas = document.getElementById("overlay");
     updateStatus("Requesting camera access...");
 
     navigator.mediaDevices.getUserMedia({ video: true })
         .then((stream) => {
             updateStatus("Camera ready! Wave/Fist→Open to organize");
             video.srcObject = stream;
+            video.addEventListener("loadedmetadata", () => {
+                ensureOverlayReady(video);
+            }, { once: true });
             video.addEventListener("loadeddata", predictWebcam, { once: true });
         })
         .catch((error) => {
@@ -110,96 +133,79 @@ function startCamera() {
 }
 
 async function predictWebcam() {
+async function predictWebcam() {
     const video = document.getElementById("webcam");
 
-    if (!handLandmarker) {
+    if (!gestureRecognizer) {
         requestAnimationFrame(predictWebcam);
         return;
     }
 
-    const results = handLandmarker.detectForVideo(video, performance.now());
+    ensureOverlayReady(video);
 
-    if (results.landmarks && results.landmarks.length > 0) {
-        const landmarks = results.landmarks[0];
-        const wristX = landmarks[0].x;
-        const movement = Math.abs(wristX - lastX);
-        const now = Date.now();
-        
-        const currentlyFist = isFist(landmarks);
-        const currentlyOpen = isOpenPaw(landmarks);
+    const now = performance.now();
+    const results = gestureRecognizer.recognizeForVideo(video, now);
 
-        // 1. WAVE DETECTION (Clear Chaos)
-        if (movement > 0.3 && (now - lastGestureTime > GESTURE_COOLDOWN)) {
-            console.log("Wave detected! Clearing chaos...");
-            updateStatus("🌊 WAVE DETECTED! Clearing chaos...");
-            
-            chrome.runtime.sendMessage({ action: "CLEAR_CHAOS" });
-            lastGestureTime = now;
-            wasFist = false; // Reset fist state
+    const topGesture = results.gestures?.[0]?.[0];
+    const gestureName = topGesture?.categoryName;
+    const score = topGesture?.score ?? 0;
+    const isNone = gestureName === "None" || gestureName === "NoGesture";
 
-            setTimeout(() => {
-                updateStatus("Camera ready! Wave/Fist→Open to organize");
-            }, 2000);
-        }
-        
-        // 2. FIST TO OPEN PAW (Organize Windows)
-        // Detect transition: was fist, now open
-        else if (wasFist && currentlyOpen && (now - lastGestureTime > GESTURE_COOLDOWN)) {
-            console.log("Fist→Open detected! Organizing windows...");
-            updateStatus("🖐️ FIST→OPEN! Organizing windows...");
-            
-           chrome.storage.local.set({ mode: 'useful' });
-            updateModeDisplay('useful');
-            document.getElementById('status').innerText = "Mode: Useful (Tiling...)";
-            
-            // Send message to background to trigger the "Tiling" immediately
-            chrome.runtime.sendMessage({ action: "organize_windows" });
-            lastGestureTime = now;
-            wasFist = false; // Reset after triggering
+    if (overlayCtx && results.landmarks?.length) {
+        overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+        overlayCtx.save();
+        // Mirror to match the flipped video
+        overlayCtx.scale(-1, 1);
+        overlayCtx.translate(-overlayCanvas.width, 0);
 
-            setTimeout(() => {
-                updateStatus("Camera ready! Wave/Fist→Open to organize");
-            }, 2000);
-        }
-        
-        // 3. FIST DETECTION (Collapse Tabs)
-        else if (currentlyFist && !wasFist && (now - lastGestureTime > GESTURE_COOLDOWN)) {
-            console.log("Fist detected! Collapsing tabs...");
-            updateStatus("✊ FIST DETECTED! Collapsing tabs...");
-            
-             console.log("Wave detected! Clearing chaos...");
-            updateStatus("🌊 WAVE DETECTED! Clearing chaos...");
-            
-            chrome.runtime.sendMessage({ action: "CLEAR_CHAOS" });
-            lastGestureTime = now;
-            wasFist = false; // Reset fist state
-
-            setTimeout(() => {
-                updateStatus("Camera ready! Wave/Fist→Open to organize");
-            }, 2000);
-
-            const windows = await chrome.windows.getAll({ windowTypes: ['normal'] });
-            const lastFocused = await chrome.windows.getCurrent() || windows[0];
-    
-            chrome.runtime.sendMessage({ 
-                action: "collapse_tabs",
-                targetWindowId: lastFocused.id 
+        const drawingUtils = new DrawingUtils(overlayCtx);
+        for (const hand of results.landmarks) {
+            drawingUtils.drawConnectors(hand, GestureRecognizer.HAND_CONNECTIONS, {
+                color: "#00FF00",
+                lineWidth: 2
             });
+            drawingUtils.drawLandmarks(hand, {
+                color: "#ff0400ff",
+                lineWidth: 2,
+                radius: 1
+            });
+        }
 
-            lastGestureTime = now;
-            wasFist = true; // Mark that we're in fist state
-            
-            setTimeout(() => {
-                updateStatus("Camera ready! Wave/Fist→Open to organize");
-            }, 2000);
+        overlayCtx.restore();
+
+    } else if (overlayCtx) {
+        overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+    }
+
+    if (gestureName && !isNone && score > 0.6) {
+        if (gestureName !== lastStableGesture) {
+            updateStatus(`Gesture: ${gestureName} (${score.toFixed(2)})`);
         }
-        
-        // Update fist tracking for next frame
-        if (!currentlyFist && !currentlyOpen) {
-            wasFist = false; // Reset if hand is in neutral position
+
+        // Transition-based controls (allow gaps where no gesture was detected)
+            if (lastStableGesture === "Open_Palm" && gestureName === "Closed_Fist") {
+                const windows = await chrome.windows.getAll({ windowTypes: ['normal'] });
+                const lastFocused = await chrome.windows.getCurrent() || windows[0];
+
+                // Ensure CLEAR_CHAOS finishes before collapsing
+                await chrome.runtime.sendMessage({ action: "CLEAR_CHAOS" });
+
+                chrome.runtime.sendMessage({ 
+                    action: "collapse_tabs",
+                    targetWindowId: lastFocused.id 
+                });
+                updateStatus("✊ Closed Fist detected → cleared chaos, collapsing tabs");
+        } else if (lastStableGesture === "Closed_Fist" && gestureName === "Open_Palm") {
+            chrome.runtime.sendMessage({ action: "organize_windows" });
+            updateStatus("🖐️ Open Palm detected → organizing windows");
         }
-        
-        lastX = wristX;
+
+        if (Date.now() - lastClearTs > 2000) {
+            chrome.runtime.sendMessage({ action: "CLEAR_CHAOS" });
+            lastClearTs = Date.now();
+        }
+
+        lastStableGesture = gestureName;
     }
 
     requestAnimationFrame(predictWebcam);
