@@ -71,3 +71,5 @@ document.getElementById('cameraBtn').addEventListener('click', () => {
     });
     document.getElementById('status').innerText = "Camera opened! Wave to clear chaos.";
 });
+
+
