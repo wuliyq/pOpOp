@@ -3,11 +3,14 @@
   <head>
     <style>
       body { 
-        /* Set a fixed size for the popup */
-        width: 600px; 
-        min-height: 200px;
-        padding: 20px; 
+        /* Dynamic sizing - adapts to popup dimensions */
+        width: 100vw; 
+        height: 100vh;
+        min-width: 200px;
+        min-height: 150px;
+        padding: 3vh 4vw; 
         font-family: sans-serif; 
+        box-sizing: border-box;
 
         /* Centering Logic */
         display: flex;
@@ -18,19 +21,37 @@
       }
 
       button { 
-        width: 100%; 
-        margin: 8px 0; 
-        padding: 12px; 
+        width: 90%; 
+        max-width: 400px;
+        margin: 1.5vh 0; 
+        padding: clamp(8px, 2vh, 20px); 
         cursor: pointer; 
         font-weight: bold; 
-        border-radius: 5px; /* Added for a cleaner look */
+        font-size: clamp(12px, 2.5vw, 18px);
+        border-radius: clamp(3px, 0.8vh, 8px);
         border: none;
+        transition: transform 0.2s;
+      }
+
+      button:hover {
+        transform: scale(1.05);
       }
 
       #uselessBtn { background-color: #ff4d4d; color: white; }
       #usefulBtn { background-color: #4CAF50; color: white; }
       
-      h3 { margin-top: 0; } /* Prevents extra space at the top */
+      h3 { 
+        margin-top: 0;
+        margin-bottom: 2vh;
+        font-size: clamp(14px, 3vw, 24px);
+      }
+
+      #status {
+        font-size: clamp(10px, 1.8vw, 14px);
+        color: #666;
+        margin-top: 1vh;
+        text-align: center;
+      }
     </style>
   </head>
   <body>
