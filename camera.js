@@ -33,57 +33,6 @@ function updateStatus(message) {
     }
 }
 
-function isFist(landmarks) {
-    const wrist = landmarks[0];
-    const middleMCP = landmarks[9]; // Middle finger knuckle
-    
-    // Reference size: Wrist to Middle Knuckle
-    const palmSize = Math.hypot(middleMCP.x - wrist.x, middleMCP.y - wrist.y);
-    
-    // Tips: Index(8), Middle(12), Ring(16), Pinky(20)
-    // If distance from wrist to tip is close to palm size, finger is curled
-    // Extended finger is roughly 2x palm size from wrist
-    const tips = [8, 12, 16, 20];
-    let curledCount = 0;
-    
-    for (const tipIdx of tips) {
-        const tip = landmarks[tipIdx];
-        const dist = Math.hypot(tip.x - wrist.x, tip.y - wrist.y);
-        
-        if (dist < palmSize * 1.3) {
-            curledCount++;
-        }
-    }
-    
-    // Require all 4 fingers to be curled
-    return curledCount === 4;
-}
-
-function isOpenPaw(landmarks) {
-    const wrist = landmarks[0];
-    const middleMCP = landmarks[9]; // Middle finger knuckle
-    
-    // Reference size: Wrist to Middle Knuckle
-    const palmSize = Math.hypot(middleMCP.x - wrist.x, middleMCP.y - wrist.y);
-    
-    // Tips: Index(8), Middle(12), Ring(16), Pinky(20)
-    const tips = [8, 12, 16, 20];
-    let extendedCount = 0;
-    
-    for (const tipIdx of tips) {
-        const tip = landmarks[tipIdx];
-        const dist = Math.hypot(tip.x - wrist.x, tip.y - wrist.y);
-        
-        // Extended finger is roughly 2x palm size from wrist
-        if (dist > palmSize * 1.7) {
-            extendedCount++;
-        }
-    }
-    
-    // Require all 4 fingers to be extended
-    return extendedCount === 4;
-}
-
 async function setupDetection() {
     try {
         updateStatus("Loading MediaPipe...");
@@ -119,6 +68,7 @@ function startCamera() {
 
     navigator.mediaDevices.getUserMedia({ video: true })
         .then((stream) => {
+            updateStatus("Camera ready! Close your fist from an open palm to clear chaos, thumbs up to organize windows.");
             video.srcObject = stream;
             video.addEventListener("loadedmetadata", () => {
                 ensureOverlayReady(video);
@@ -198,6 +148,8 @@ async function predictWebcam() {
         } else if (gestureName === "Thumb_Up" && lastStableGesture !== "Thumb_Up") {
             chrome.storage.local.set({ mode: "useful" });
             chrome.runtime.sendMessage({ action: "organize_windows" });
+            updateStatus("👍 Thumbs up detected → useful mode activated, organizing windows");
+        }
 
         lastStableGesture = gestureName;
 
@@ -213,4 +165,3 @@ async function predictWebcam() {
 // Start the detection when page loads
 // startCamera()
 setupDetection();
-
