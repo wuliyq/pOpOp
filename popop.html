@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+      body { 
+        /* Set a fixed size for the popup */
+        width: 1466px; 
+        min-height: 200px;
+        padding: 20px; 
+        font-family: sans-serif; 
+
+        /* Centering Logic */
+        display: flex;
+        flex-direction: column; /* Stack elements vertically */
+        justify-content: center; /* Center vertically */
+        align-items: center;     /* Center horizontally */
+        margin: 0;               /* Remove default browser margins */
+      }
+
+      button { 
+        width: 100%; 
+        margin: 8px 0; 
+        padding: 12px; 
+        cursor: pointer; 
+        font-weight: bold; 
+        border-radius: 5px; /* Added for a cleaner look */
+        border: none;
+      }
+
+      #uselessBtn { background-color: #ff4d4d; color: white; }
+      #usefulBtn { background-color: #4CAF50; color: white; }
+      
+      h3 { margin-top: 0; } /* Prevents extra space at the top */
+    </style>
+  </head>
+  <body>
+    <h3>Choose Your Mode</h3>
+    <button id="uselessBtn">😈 Useless Mode</button>
+    <button id="usefulBtn">😇 Useful Mode</button>
+    <p id="status" style="font-size: 12px; color: #666;"></p>
+    <script src="popop.js"></script>
+  </body>
+</html>
