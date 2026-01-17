@@ -1,32 +1,79 @@
 // Variable to track the size of the "last" window for the recursive shrinking effect
 let lastWidth = 1000; 
 let lastHeight = 800;
+let isSpawningLoop = false; // Flag to prevent infinite loop
 
 // 1. LISTEN FOR NEW TABS (For Useless Mode)
+
 chrome.tabs.onCreated.addListener(async (tab) => {
     const result = await chrome.storage.local.get("mode");
     
+    // Ignore tabs created during the spawning loop
+    if (isSpawningLoop) return;
+    
     if (result.mode === 'useless') {
-        // DETACH the new tab into a new window to create the "Stack"
-        // We assume 'tab.id' is present.
+        // Check if we've hit the "too small" limit
+        const shouldLoop = lastWidth <= 450;
         
-        // Randomize position slightly
-        const randomLeft = Math.floor(Math.random() * 200); 
-        const randomTop = Math.floor(Math.random() * 200);
-
-        // Shrink size by 10% each time, reset if too small
-        lastWidth = lastWidth * 0.9;
-        lastHeight = lastHeight * 0.9;
-        if (lastWidth < 200) { lastWidth = 1000; lastHeight = 800; }
-
-        chrome.windows.create({
-            tabId: tab.id,
-            width: Math.floor(lastWidth),
-            height: Math.floor(lastHeight),
-            left: randomLeft + 100, // Offset to show stacking
-            top: randomTop + 100,
-            focused: true
-        });
+        if (shouldLoop) {
+            // Reset sizes BEFORE the loop
+            lastWidth = 1000; 
+            lastHeight = 800;
+            
+            // Create the current tab's window first
+            const randomOffset = Math.floor(Math.random() * 150);
+            await chrome.windows.create({
+                tabId: tab.id,
+                width: lastWidth,
+                height: lastHeight,
+                left: randomOffset + 50,
+               Set flag to prevent infinite loop
+            isSpawningLoop = true;
+            
+            //  top: randomOffset + 50,
+                focused: false
+            });
+            
+            // Now trigger the loop: open 10 more windows at random locations
+            for (let i = 0; i < 10; i++) {
+                const randomWidth = Math.floor(Math.random() * 400) + 400;  // 400-800px
+                const randomHeight = Math.floor(Math.random() * 300) + 300; // 300-600px
+                const randomLeft = Math.floor(Math.random() * 800);
+                const randomTop = Math.floor(Math.random() * 500);
+                
+                // Create new tab and window
+                const newTab = await chrome.tabs.create({ active: false });
+                await chrome.windows.create({
+                    tabId: newTab.id,
+                    width: randomWidth,
+                    height: randomHeight,
+                    left: randomLeft,
+            
+            // Reset flag after loop completes
+                isSpawningLoop = false;
+                    top: randomTop,
+                    focused: false
+                });
+                
+                // Small delay between windows for visual effect
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+        } else {
+            // Shrink for next iteration
+            lastWidth = Math.floor(lastWidth * 0.8);
+            lastHeight = Math.floor(lastHeight * 0.8);
+            
+            // ALWAYS create a window
+            const randomOffset = Math.floor(Math.random() * 150);
+            await chrome.windows.create({
+                tabId: tab.id,
+                width: lastWidth,
+                height: lastHeight,
+                left: randomOffset + 50,
+                top: randomOffset + 50,
+                focused: true
+            });
+        }
     }
 });
 

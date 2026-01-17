@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Explosion Animation</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        button {
+            padding: 20px 40px;
+            font-size: 24px;
+            font-weight: bold;
+            background: #ff4d4d;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            transition: transform 0.2s;
+        }
+        
+        button:hover {
+            transform: scale(1.05);
+        }
+        
+        button:active {
+            transform: scale(0.95);
+        }
+        
+        h1 {
+            color: white;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+    </style>
+</head>
+<body>
+    <h1>💥 Test Explosion Animation</h1>
+    <button onclick="createExplosion()">Click to Explode!</button>
+    
+    <script>
+        function createExplosion() {
+            console.log("Creating explosion animation!");
+            const shardCount = 50; 
+            
+            for (let i = 0; i < shardCount; i++) {
+                const shard = document.createElement('div');
+                shard.style.cssText = `
+                    position: fixed;
+                    width: 150px;
+                    height: 100px;
+                    background: #f0f0f0;
+                    border: 1px solid #999;
+                    box-shadow: 10px 10px 20px rgba(0,0,0,0.2);
+                    z-index: 2147483647;
+                    top: 50vh;
+                    left: 50vw;
+                    transition: all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+                    pointer-events: none;
+                `;
+                shard.innerHTML = '<div style="background:#3a77d1; height:15px; width:100%;"></div>';
+                document.body.appendChild(shard);
+
+                // Trigger animation on next frame
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        shard.style.top = `${Math.random() * 90}vh`;
+                        shard.style.left = `${Math.random() * 90}vw`;
+                        shard.style.transform = `rotate(${Math.random() * 360}deg) scale(${Math.random() + 0.5})`;
+                    });
+                });
+            }
+        }
+    </script>
+</body>
+</html>
