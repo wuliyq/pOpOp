@@ -152,6 +152,21 @@ async function organizeWindows() {
     // Get all windows with their tabs
     const windows = await chrome.windows.getAll({ populate: true, windowTypes: ['normal'] });
     
+    // FIRST: Exit fullscreen/maximized state for ALL windows
+    for (const win of windows) {
+        if (win.state === 'maximized' || win.state === 'fullscreen') {
+            try {
+                await chrome.windows.update(win.id, { state: 'normal' });
+                console.log(`Window ${win.id} set to normal from ${win.state}`);
+            } catch (err) {
+                console.log("Could not normalize window:", err);
+            }
+        }
+    }
+    
+    // Wait for OS animations to complete (important for macOS)
+    await new Promise(resolve => setTimeout(resolve, 600));
+    
     // Collect all tabs from all windows
     const allTabs = [];
     for (const win of windows) {

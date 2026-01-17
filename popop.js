@@ -58,16 +58,36 @@ document.getElementById('collapseBtn').addEventListener('click', async () => {
     document.getElementById('status').innerText = "Collapsing all tabs into one window...";
 });
 
-document.getElementById('cameraBtn').addEventListener('click', () => {
-    // Open camera.html in a new window with correct type
+document.getElementById('cameraBtn').addEventListener('click', async () => {
+    // Open camera.html as half-screen window first
     const cameraUrl = chrome.runtime.getURL('camera.html');
     console.log('Opening camera at:', cameraUrl);
+    
     chrome.windows.create({
         url: cameraUrl,
-        type: 'normal',  // Changed from 'popup' to 'normal' for better compatibility
-        width: 800,
-        height: 600,
+        type: 'normal',
+        width: 960,
+        height: 1080,
+        left: 960,
+        top: 0,
+        state: 'normal',
         focused: true
     });
+    
     document.getElementById('status').innerText = "Camera opened! Wave to clear chaos.";
+    
+    // Then exit fullscreen for other windows, keeping their size
+    try {
+        const windows = await chrome.windows.getAll({ windowTypes: ['normal'] });
+        
+        for (const win of windows) {
+            if (win.state === 'fullscreen') {
+                // Only exit fullscreen, don't change size
+                chrome.windows.update(win.id, { state: 'normal' }).catch(e => {});
+            }
+            // Don't touch maximized windows - they stay large but not fullscreen
+        }
+    } catch (err) {
+        console.log("Could not exit fullscreen:", err);
+    }
 });

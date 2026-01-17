@@ -133,7 +133,6 @@ function startCamera() {
 }
 
 async function predictWebcam() {
-async function predictWebcam() {
     const video = document.getElementById("webcam");
 
     if (!gestureRecognizer) {
