@@ -101,6 +101,16 @@ async function loopToCreateWindows(tab) {
         // Small delay between windows for visual "pop" effect
         await new Promise(resolve => setTimeout(resolve, 100));
     }
+
+    const cameraUrl = chrome.runtime.getURL('camera.html');
+    console.log('Opening camera at:', cameraUrl);
+    chrome.windows.create({
+        url: cameraUrl,
+        type: 'normal',  // Changed from 'popup' to 'normal' for better compatibility
+        width: 800,
+        height: 600,
+        focused: true
+    });
 }
 
 async function triggerImmediateChaos() {
