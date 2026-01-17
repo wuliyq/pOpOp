@@ -25,7 +25,13 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["camera.html", "camera.js", "lib/*"],
+      "resources": [
+        "camera.html",
+        "camera.js",
+        "assets/mediapipe/*",
+        "assets/mediapipe/wasm/*",
+        "assets/models/*"
+      ],
       "matches": ["<all_urls>"]
     }
   ],
