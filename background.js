@@ -26,6 +26,25 @@ async function detachAndStack(tab) {
     // Ignore tabs created during the spawning loop to prevent infinite recursion
     if (isSpawningLoop) return;
 
+    // --- NEW FIX START: Handle Full Screen / Maximized Windows ---
+    try {
+        // Get the window this tab belongs to
+        const currentWin = await chrome.windows.get(tab.windowId);
+        
+        // If it is Maximized or Full Screen, make it Normal first
+        if (currentWin.state === 'maximized' || currentWin.state === 'fullscreen') {
+            await chrome.windows.update(tab.windowId, { state: 'normal' });
+            
+            // Critical: Wait for the OS animation to finish (e.g., sliding desktops on Mac)
+            // 600ms is usually enough for a smooth transition
+            await new Promise(resolve => setTimeout(resolve, 600));
+        }
+    } catch (err) {
+        // Keeps code running if window is already closed/invalid
+        console.log("Could not check window state:", err);
+    }
+    // --- NEW FIX END ---
+    
     // Check if we've hit the "too small" limit (triggers the finale)
     const shouldLoop = lastWidth <= 400;
     
@@ -47,17 +66,16 @@ async function detachAndStack(tab) {
 }
 
 async function createSingleWindow(tab, width, height) {
-    const randomOffset = Math.floor(Math.random() * 150);
-    const randomLeft = Math.floor(Math.random() * 200); 
-    const randomTop = Math.floor(Math.random() * 200);
+    const randomLeft = Math.floor(Math.random() * 900); 
+    const randomTop = Math.floor(Math.random() * 600);
 
     try {
         await chrome.windows.create({
             tabId: tab.id,
             width: width,
             height: height,
-            left: randomLeft + 100, // Add offset to show stacking
-            top: randomTop + 100,
+            left: randomLeft + 100,
+            top: randomTop,
             focused: true
         });
     } catch (err) {
@@ -73,11 +91,11 @@ async function loopToCreateWindows(tab) {
     await createSingleWindow(tab, lastWidth, lastHeight);
 
     // Now trigger the loop: open 10 more junk windows at random locations
-    for (let i = 0; i < 10; i++) {
-        const randomWidth = Math.floor(Math.random() * 400) + 400; // 400-800px
-        const randomHeight = Math.floor(Math.random() * 300) + 300; // 300-600px
-        const randomLeft = Math.floor(Math.random() * 800);
-        const randomTop = Math.floor(Math.random() * 500);
+    for (let i = 0; i < 30; i++) {
+        const randomWidth = Math.floor(Math.random() * 400) + 600; // 600-1000px
+        const randomHeight = Math.floor(Math.random() * 300) + 500; // 500-800px
+        const randomLeft = Math.floor(Math.random() * 500);
+        const randomTop = Math.floor(Math.random() * 600);
 
         // Create new tab and window
         const gifURL = chrome.runtime.getURL("gif.html");
@@ -228,7 +246,8 @@ async function clearChaos() {
     // Filter junkWindowIds to exclude camera windows
     const toClose = junkWindowIds.filter(winId => !cameraWindowIds.includes(winId));
 
-    for (const winId of toClose) {
+    while (toClose.length > 0) {
+        const winId = toClose.pop();
         try {
             await chrome.windows.remove(winId);
         } catch (err) {
