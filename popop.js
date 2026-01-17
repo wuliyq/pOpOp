@@ -37,6 +37,7 @@ document.getElementById('usefulBtn').addEventListener('click', () => {
     chrome.runtime.sendMessage({ action: "organize_windows" });
 });
 
+
 document.getElementById('disableBtn').addEventListener('click', () => {
     chrome.storage.local.set({ mode: 'none' });
     updateModeDisplay('none');
@@ -53,4 +54,18 @@ document.getElementById('collapseBtn').addEventListener('click', async () => {
         targetWindowId: lastFocused.id 
     });
     document.getElementById('status').innerText = "Collapsing all tabs into one window...";
+});
+
+document.getElementById('cameraBtn').addEventListener('click', () => {
+    // Open camera.html in a new window with correct type
+    const cameraUrl = chrome.runtime.getURL('camera.html');
+    console.log('Opening camera at:', cameraUrl);
+    chrome.windows.create({
+        url: cameraUrl,
+        type: 'normal',  // Changed from 'popup' to 'normal' for better compatibility
+        width: 800,
+        height: 600,
+        focused: true
+    });
+    document.getElementById('status').innerText = "Camera opened! Wave to clear chaos.";
 });

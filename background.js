@@ -216,3 +216,84 @@ async function collapseAllTabs(targetWindowId) {
     await chrome.windows.update(targetWindowId, { state: "maximized" });
 }
 
+async function clearChaos() {
+    console.log("Clearing chaos - closing all windows except camera");
+    const windows = await chrome.windows.getAll({ populate: true, windowTypes: ['normal'] });
+    
+    for (const win of windows) {
+        // Check if this window has camera.html open
+        const hasCamera = win.tabs?.some(tab => tab.url?.includes('camera.html'));
+        
+        if (!hasCamera) {
+            // Close windows that don't have camera.html
+            chrome.windows.remove(win.id).catch(err => 
+                console.log("Could not close window:", err)
+            );
+        }
+    }
+    
+    // Reset size tracker
+    lastWidth = 1000;
+    lastHeight = 800;
+}
+
+async function collapseAllTabs(targetWindowId) {
+    // Get all windows with their tabs
+    const windows = await chrome.windows.getAll({ populate: true, windowTypes: ['normal'] });
+    
+    if (windows.length === 0) return;
+    
+    // If no target window specified, use the first one
+    if (!targetWindowId) {
+        targetWindowId = windows[0].id;
+    }
+    
+    // Collect tabs from OTHER windows (not the current one)
+    const tabsToMove = [];
+    for (const win of windows) {
+        if (win.id !== targetWindowId) {
+            for (const tab of win.tabs) {
+                tabsToMove.push(tab.id);
+            }
+        }
+    }
+
+    console.log(tabsToMove);
+    
+    // Move all tabs from other windows to the current window
+    for (const tabId of tabsToMove) {
+        try {
+            await chrome.tabs.move(tabId, { windowId: targetWindowId, index: -1 });
+        } catch (error) {
+            console.error('Error moving tab:', error);
+        }
+    }
+    
+    // Focus the target window
+    await chrome.windows.update(targetWindowId, { focused: true, state: "normal" });
+
+    // Maximize the target window to show all tabs clearly
+    await chrome.windows.update(targetWindowId, { state: "maximized" });
+}
+
+async function clearChaos() {
+    console.log("Clearing chaos - closing all windows except camera");
+    const windows = await chrome.windows.getAll({ populate: true, windowTypes: ['normal'] });
+    
+    for (const win of windows) {
+        // Check if this window has camera.html open
+        const hasCamera = win.tabs?.some(tab => tab.url?.includes('camera.html'));
+        
+        if (!hasCamera) {
+            // Close windows that don't have camera.html
+            chrome.windows.remove(win.id).catch(err => 
+                console.log("Could not close window:", err)
+            );
+        }
+    }
+    
+    // Reset size tracker
+    lastWidth = 1000;
+    lastHeight = 800;
+}
+
