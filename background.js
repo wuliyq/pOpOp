@@ -28,7 +28,7 @@ async function detachAndStack(tab) {
     if (isSpawningLoop) return;
 
     // Check if we've hit the "too small" limit (triggers the finale)
-    const shouldLoop = lastWidth <= 450;
+    const shouldLoop = lastWidth <= 400;
     
     if (shouldLoop) {
         isSpawningLoop = true;
@@ -81,9 +81,10 @@ async function loopToCreateWindows(tab) {
         const randomTop = Math.floor(Math.random() * 500);
 
         // Create new tab and window
-        const newTab = await chrome.tabs.create({ active: false });
+        const gifURL = chrome.runtime.getURL("gif.html");
         await chrome.windows.create({
-            tabId: newTab.id,
+            url: gifURL,
+            type: "popup",
             width: randomWidth,
             height: randomHeight,
             left: randomLeft,
@@ -213,14 +214,9 @@ async function collapseAllTabs(targetWindowId) {
         targetWindowId = windows[0].id;
     }
     
-    const tabsToMove = [];
-    for (const win of windows) {
-        if (win.id !== targetWindowId) {
-            for (const tab of win.tabs) {
-                tabsToMove.push(tab.id);
-            }
-        }
-    }
+    let allTabs = await chrome.tabs.query({});
+
+    const tabsToMove = allTabs.map(tab => tab.id);
 
     for (const tabId of tabsToMove) {
         try {
