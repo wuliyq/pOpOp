@@ -32,66 +32,18 @@ chrome.tabs.onCreated.addListener(async (tab) => {
         const shouldLoop = lastWidth <= 450;
         // const shouldLoop = true
         
-
         if (shouldLoop) {
             isSpawningLoop = true;
-            try {
-                // Reset sizes BEFORE the loop
-                lastWidth = 1000; 
-                lastHeight = 800;
-                
-                // Create the current tab's window first
-                const randomOffset = Math.floor(Math.random() * 150);
-                await chrome.windows.create({
-                    tabId: tab.id,
-                    width: lastWidth,
-                    height: lastHeight,
-                    left: randomOffset + 50,
-                    //  top: randomOffset + 50,
-                    focused: false
-                });
-                
-                // Now trigger the loop: open 10 more windows at random locations
-                for (let i = 0; i < 10; i++) {
-                    const randomWidth = Math.floor(Math.random() * 400) + 400;  // 400-800px
-                    const randomHeight = Math.floor(Math.random() * 300) + 300; // 300-600px
-                    const randomLeft = Math.floor(Math.random() * 800);
-                    const randomTop = Math.floor(Math.random() * 500);
-                    
-                    // Create new tab and window
-                    const newTab = await chrome.tabs.create({ 
-                        active: false
-                    });
-                    await chrome.windows.create({
-                        tabId: newTab.id,
-                        width: randomWidth,
-                        height: randomHeight,
-                        left: randomLeft,
-                        top: randomTop,
-                        focused: false
-                    });
-                    
-                    // Small delay between windows for visual effect
-                    await new Promise(resolve => setTimeout(resolve, 100));
-                }
-            } finally {
-                isSpawningLoop = false;
-            }
+
+            // Reset sizes BEFORE the loop
+            await loopToCreateWindows(tab);
+
+            isSpawningLoop = false;
+
         } else {
-            // Shrink for next iteration
             lastWidth = Math.floor(lastWidth * 0.8);
             lastHeight = Math.floor(lastHeight * 0.8);
-            
-            // ALWAYS create a window
-            const randomOffset = Math.floor(Math.random() * 150);
-            await chrome.windows.create({
-                tabId: tab.id,
-                width: lastWidth,
-                height: lastHeight,
-                left: randomOffset + 50,
-                top: randomOffset + 50,
-                focused: true
-            });
+            await createSingleWindow(tab, lastWidth, lastHeight);
         }
 
         // Randomize position slightly
@@ -111,10 +63,8 @@ chrome.tabs.onCreated.addListener(async (tab) => {
             top: randomTop + 100,
             focused: true
         });
-    } else if (result.mode === 'useful') {
-        organizeWindows();
     }
-});
+})
 
 // 2. LISTEN FOR MESSAGES (For Useful Mode)
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -122,6 +72,50 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         organizeWindows();
     }
 });
+
+async function createSingleWindow(tab, lastWidth, lastHeight) {
+    // ALWAYS create a window
+    const randomOffset = Math.floor(Math.random() * 150);
+    await chrome.windows.create({
+        tabId: tab.id,
+        width: lastWidth,
+        height: lastHeight,
+        left: randomOffset + 50,
+        top: randomOffset + 50,
+        focused: true
+    });
+}
+
+async function loopToCreateWindows(tab) {
+    lastWidth = 1000;
+    lastHeight = 800;
+
+    await createSingleWindow(tab, lastWidth, lastHeight);
+
+    // Now trigger the loop: open 10 more windows at random locations
+    for (let i = 0; i < 10; i++) {
+        const randomWidth = Math.floor(Math.random() * 400) + 400; // 400-800px
+        const randomHeight = Math.floor(Math.random() * 300) + 300; // 300-600px
+        const randomLeft = Math.floor(Math.random() * 800);
+        const randomTop = Math.floor(Math.random() * 500);
+
+        // Create new tab and window
+        const newTab = await chrome.tabs.create({
+            active: false
+        });
+        await chrome.windows.create({
+            tabId: newTab.id,
+            width: randomWidth,
+            height: randomHeight,
+            left: randomLeft,
+            top: randomTop,
+            focused: false
+        });
+
+        // Small delay between windows for visual effect
+        await new Promise(resolve => setTimeout(resolve, 100));
+    }
+}
 
 async function organizeWindows() {
     // Get all windows
