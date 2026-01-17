@@ -109,10 +109,11 @@ async function loopToCreateWindows(tab) {
             focused: true
         });
         
-        // Store ID of created junk window for potential cleanup later
+        // Store tab ID of created junk window for potential cleanup later
+        const tabId = createdWindow.tabs[0].id;
         await chrome.storage.local.get({ junkWindows: [] }, (result) => {
             const updatedList = result.junkWindows;
-            updatedList.push(createdWindow.id);
+            updatedList.push(tabId);
             chrome.storage.local.set({ junkWindows: updatedList });
         });
 
@@ -230,28 +231,29 @@ async function collapseAllTabs(targetWindowId) {
     await chrome.windows.update(targetWindowId, { state: "maximized" });
 }
 
-async function clearChaos() {
-    console.log("Clearing chaos - closing all windows except camera");
+async function clearChaos(trigger = null) {
+    console.log("Clearing chaos - closing all junk tabs");
     const windows = await chrome.windows.getAll({ populate: true, windowTypes: ['normal'] });
     
-    // Retrieve junk windows list
+    // Retrieve junk tab IDs
     const result = await chrome.storage.local.get({ junkWindows: [] });
-    const junkWindowIds = result.junkWindows || [];
+    const junkTabIds = result.junkWindows || [];
     
-    // Get IDs of windows with camera open
-    const cameraWindowIds = windows
-        .filter(win => win.tabs?.some(tab => tab.url?.includes('camera.html')))
-        .map(win => win.id);
+    // Get IDs of tabs with camera open
+    const cameraTabIds = windows
+        .flatMap(win => win.tabs || [])
+        .filter(tab => tab.url?.includes('camera.html'))
+        .map(tab => tab.id);
     
-    // Filter junkWindowIds to exclude camera windows
-    const toClose = junkWindowIds.filter(winId => !cameraWindowIds.includes(winId));
+    // Filter junkTabIds to exclude camera tabs
+    const toClose = junkTabIds.filter(tabId => !cameraTabIds.includes(tabId));
 
     while (toClose.length > 0) {
-        const winId = toClose.pop();
+        const tabId = toClose.pop();
         try {
-            await chrome.windows.remove(winId);
+            await chrome.tabs.remove(tabId);
         } catch (err) {
-            console.log("Could not close window:", err);
+            console.log("Could not close tab:", err);
         }
         // delay between closures for visible stagger
         await new Promise(resolve => setTimeout(resolve, 200));
@@ -263,6 +265,17 @@ async function clearChaos() {
     // Reset size tracker
     lastWidth = 1000;
     lastHeight = 800;
+
+    if (trigger === "gesture") {
+        const lastFocused = await chrome.windows.getCurrent() || windows[0];
+        await collapseAllTabs(lastFocused.id);
+        
+        // Find and focus the camera tab
+        const cameraTabId = cameraTabIds[0]; // We already have this from above
+        if (cameraTabId) {
+            await chrome.tabs.update(cameraTabId, { active: true });
+        }
+    }
 }
 
 // ==========================================
@@ -286,17 +299,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     else if (message.action === "activate_useless_mode") {
         // This triggers the chaos on ALREADY opened tabs
         triggerImmediateChaos();
-    }
-});
-
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.action === "CLEAR_CHAOS") {
-        clearChaos();
-    }
-});
-
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.action === "collapse_tabs") {
+    } else if (message.action === "CLEAR_CHAOS") {
+        clearChaos(message.trigger);
+    } else if (message.action === "collapse_tabs") {
         collapseAllTabs(message.targetWindowId);
     }
 });
