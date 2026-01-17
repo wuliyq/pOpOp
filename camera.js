@@ -1,5 +1,5 @@
 // Local MediaPipe bundle (packaged for CSP-safe use)
-import { GestureRecognizer, FilesetResolver } from "./assets/mediapipe/vision_bundle.js";
+import { GestureRecognizer, FilesetResolver, DrawingUtils } from "./assets/mediapipe/vision_bundle.js";
 
 let gestureRecognizer;
 let lastClearTs = 0;
@@ -49,7 +49,7 @@ async function setupDetection() {
                 delegate: "GPU"
             },
             runningMode: "VIDEO",
-            numHands: 1
+            numHands: 2
         });
 
         updateStatus("Detector ready. Starting camera...");
@@ -99,20 +99,26 @@ function predictWebcam() {
 
     if (overlayCtx && results.landmarks?.length) {
         overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
-        const landmarks = results.landmarks[0];
+        overlayCtx.save();
+        // Mirror to match the flipped video
+        overlayCtx.scale(-1, 1);
+        overlayCtx.translate(-overlayCanvas.width, 0);
 
-        // Draw points only
-        for (const lm of landmarks) {
-            const x = (1 - lm.x) * overlayCanvas.width; // mirror horizontally to match video
-            const y = lm.y * overlayCanvas.height;
-            overlayCtx.beginPath();
-            overlayCtx.arc(x, y, 5, 0, Math.PI * 2);
-            overlayCtx.fillStyle = "#39ff14";
-            overlayCtx.fill();
-            overlayCtx.lineWidth = 2;
-            overlayCtx.strokeStyle = "#0affff";
-            overlayCtx.stroke();
+        const drawingUtils = new DrawingUtils(overlayCtx);
+        for (const hand of results.landmarks) {
+            drawingUtils.drawConnectors(hand, GestureRecognizer.HAND_CONNECTIONS, {
+                color: "#00FF00",
+                lineWidth: 2
+            });
+            drawingUtils.drawLandmarks(hand, {
+                color: "#ff0400ff",
+                lineWidth: 2,
+                radius: 1
+            });
         }
+
+        overlayCtx.restore();
+
     } else if (overlayCtx) {
         overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
     }
