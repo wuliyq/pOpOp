@@ -268,13 +268,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         // This triggers the chaos on ALREADY opened tabs
         triggerImmediateChaos();
     }
-    else if (message.action === "collapse_tabs") {
-        collapseAllTabs(message.targetWindowId);
-    }
 });
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === "CLEAR_CHAOS") {
         clearChaos();
+    }
+});
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.action === "collapse_tabs") {
+        collapseAllTabs(message.targetWindowId);
     }
 });
