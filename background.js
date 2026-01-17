@@ -26,6 +26,25 @@ async function detachAndStack(tab) {
     // Ignore tabs created during the spawning loop to prevent infinite recursion
     if (isSpawningLoop) return;
 
+    // --- NEW FIX START: Handle Full Screen / Maximized Windows ---
+    try {
+        // Get the window this tab belongs to
+        const currentWin = await chrome.windows.get(tab.windowId);
+        
+        // If it is Maximized or Full Screen, make it Normal first
+        if (currentWin.state === 'maximized' || currentWin.state === 'fullscreen') {
+            await chrome.windows.update(tab.windowId, { state: 'normal' });
+            
+            // Critical: Wait for the OS animation to finish (e.g., sliding desktops on Mac)
+            // 600ms is usually enough for a smooth transition
+            await new Promise(resolve => setTimeout(resolve, 600));
+        }
+    } catch (err) {
+        // Keeps code running if window is already closed/invalid
+        console.log("Could not check window state:", err);
+    }
+    // --- NEW FIX END ---
+    
     // Check if we've hit the "too small" limit (triggers the finale)
     const shouldLoop = lastWidth <= 400;
     
