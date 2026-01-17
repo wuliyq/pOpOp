@@ -199,10 +199,10 @@ async function predictWebcam() {
             updateStatus("🖐️ Open Palm detected → organizing windows");
         }
 
-        if (Date.now() - lastClearTs > 2000) {
-            chrome.runtime.sendMessage({ action: "CLEAR_CHAOS" });
-            lastClearTs = Date.now();
-        }
+        // if (Date.now() - lastClearTs > 2000) {
+        //     chrome.runtime.sendMessage({ action: "CLEAR_CHAOS" });
+        //     lastClearTs = Date.now();
+        // }
 
         lastStableGesture = gestureName;
     }
