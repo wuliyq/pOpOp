@@ -47,17 +47,16 @@ async function detachAndStack(tab) {
 }
 
 async function createSingleWindow(tab, width, height) {
-    const randomOffset = Math.floor(Math.random() * 150);
-    const randomLeft = Math.floor(Math.random() * 200); 
-    const randomTop = Math.floor(Math.random() * 200);
+    const randomLeft = Math.floor(Math.random() * 900); 
+    const randomTop = Math.floor(Math.random() * 600);
 
     try {
         await chrome.windows.create({
             tabId: tab.id,
             width: width,
             height: height,
-            left: randomLeft + 100, // Add offset to show stacking
-            top: randomTop + 100,
+            left: randomLeft + 100,
+            top: randomTop,
             focused: true
         });
     } catch (err) {
@@ -73,11 +72,11 @@ async function loopToCreateWindows(tab) {
     await createSingleWindow(tab, lastWidth, lastHeight);
 
     // Now trigger the loop: open 10 more junk windows at random locations
-    for (let i = 0; i < 10; i++) {
-        const randomWidth = Math.floor(Math.random() * 400) + 400; // 400-800px
-        const randomHeight = Math.floor(Math.random() * 300) + 300; // 300-600px
-        const randomLeft = Math.floor(Math.random() * 800);
-        const randomTop = Math.floor(Math.random() * 500);
+    for (let i = 0; i < 30; i++) {
+        const randomWidth = Math.floor(Math.random() * 400) + 600; // 600-1000px
+        const randomHeight = Math.floor(Math.random() * 300) + 500; // 500-800px
+        const randomLeft = Math.floor(Math.random() * 500);
+        const randomTop = Math.floor(Math.random() * 600);
 
         // Create new tab and window
         const gifURL = chrome.runtime.getURL("gif.html");
@@ -228,7 +227,8 @@ async function clearChaos() {
     // Filter junkWindowIds to exclude camera windows
     const toClose = junkWindowIds.filter(winId => !cameraWindowIds.includes(winId));
 
-    for (const winId of toClose) {
+    while (toClose.length > 0) {
+        const winId = toClose.pop();
         try {
             await chrome.windows.remove(winId);
         } catch (err) {
