@@ -1,3 +1,221 @@
+// // Variable to track the size of the "last" window for the recursive shrinking effect
+// let lastWidth = 1000; 
+// let lastHeight = 800;
+// let isSpawningLoop = false; // Flag to prevent infinite loop
+
+// async function getPrimaryWorkArea() {
+//     try {
+//         const displays = await chrome.system.display.getInfo();
+//         const primary = displays.find((d) => d.isPrimary) || displays[0];
+//         const area = primary?.workArea;
+
+//         if (area) {
+//             return { width: area.width, height: area.height, left: area.left, top: area.top };
+//         }
+//     } catch (err) {
+//         console.warn("Falling back to default screen size", err);
+//     }
+
+//     return { width: 1500, height: 900, left: 0, top: 0 };
+// }
+
+// // 1. LISTEN FOR NEW TABS (For Useless Mode)
+
+// chrome.tabs.onCreated.addListener(async (tab) => {
+//     const result = await chrome.storage.local.get("mode");
+    
+//     // Ignore tabs created during the spawning loop
+//     if (isSpawningLoop) return;
+    
+//     if (result.mode === 'useless') {
+//         // Check if we've hit the "too small" limit
+//         const shouldLoop = lastWidth <= 450;
+//         // const shouldLoop = true
+        
+//         if (shouldLoop) {
+//             isSpawningLoop = true;
+
+//             // Reset sizes BEFORE the loop
+//             await loopToCreateWindows(tab);
+
+//             isSpawningLoop = false;
+
+//         } else {
+//             lastWidth = Math.floor(lastWidth * 0.8);
+//             lastHeight = Math.floor(lastHeight * 0.8);
+//             await createSingleWindow(tab, lastWidth, lastHeight);
+//         }
+
+//         // Randomize position slightly
+//         const randomLeft = Math.floor(Math.random() * 200); 
+//         const randomTop = Math.floor(Math.random() * 200);
+
+//         // Shrink size by 10% each time, reset if too small
+//         lastWidth = lastWidth * 0.9;
+//         lastHeight = lastHeight * 0.9;
+//         if (lastWidth < 200) { lastWidth = 1000; lastHeight = 800; }
+
+//         chrome.windows.create({
+//             tabId: tab.id,
+//             width: Math.floor(lastWidth),
+//             height: Math.floor(lastHeight),
+//             left: randomLeft + 100, // Offset to show stacking
+//             top: randomTop + 100,
+//             focused: true
+//         });
+//     }
+// })
+
+// // 2. LISTEN FOR MESSAGES (For Useful Mode)
+// chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+//     if (message.action === "organize_windows") {
+//         organizeWindows();
+//     } else if (message.action === "collapse_tabs") {
+//         collapseAllTabs(message.targetWindowId);
+//     }
+// });
+
+// async function createSingleWindow(tab, lastWidth, lastHeight) {
+//     // ALWAYS create a window
+//     const randomOffset = Math.floor(Math.random() * 150);
+//     await chrome.windows.create({
+//         tabId: tab.id,
+//         width: lastWidth,
+//         height: lastHeight,
+//         left: randomOffset + 50,
+//         top: randomOffset + 50,
+//         focused: true
+//     });
+// }
+
+// async function loopToCreateWindows(tab) {
+//     lastWidth = 1000;
+//     lastHeight = 800;
+
+//     await createSingleWindow(tab, lastWidth, lastHeight);
+
+//     // Now trigger the loop: open 10 more windows at random locations
+//     for (let i = 0; i < 10; i++) {
+//         const randomWidth = Math.floor(Math.random() * 400) + 400; // 400-800px
+//         const randomHeight = Math.floor(Math.random() * 300) + 300; // 300-600px
+//         const randomLeft = Math.floor(Math.random() * 800);
+//         const randomTop = Math.floor(Math.random() * 500);
+
+//         // Create new tab and window
+//         const newTab = await chrome.tabs.create({
+//             active: false
+//         });
+//         await chrome.windows.create({
+//             tabId: newTab.id,
+//             width: randomWidth,
+//             height: randomHeight,
+//             left: randomLeft,
+//             top: randomTop,
+//             focused: false
+//         });
+
+//         // Small delay between windows for visual effect
+//         await new Promise(resolve => setTimeout(resolve, 100));
+//     }
+// }
+
+// async function organizeWindows() {
+//     // Get all windows with their tabs
+//     const windows = await chrome.windows.getAll({ populate: true, windowTypes: ['normal'] });
+    
+//     // Collect all tabs from all windows
+//     const allTabs = [];
+//     for (const win of windows) {
+//         for (const tab of win.tabs) {
+//             allTabs.push({ tabId: tab.id, windowId: win.id });
+//         }
+//     }
+    
+//     const count = allTabs.length;
+//     const { width: screenW, height: screenH, left: screenLeft, top: screenTop } = await getPrimaryWorkArea();
+    
+//     // Calculate Grid (Columns and Rows)
+//     const cols = Math.ceil(Math.sqrt(count));
+//     const rows = Math.ceil(count / cols);
+    
+//     const winW = Math.floor(screenW / cols);
+//     const winH = Math.floor(screenH / rows);
+
+//     // Create or update windows for each tab
+//     for (let i = 0; i < count; i++) {
+//         const { tabId, windowId } = allTabs[i];
+        
+//         // Calculate Grid Position
+//         const colIndex = i % cols;
+//         const rowIndex = Math.floor(i / cols);
+        
+//         const newLeft = screenLeft + colIndex * winW;
+//         const newTop = screenTop + rowIndex * winH;
+
+//         // Check if this is the only tab in its window
+//         const originalWindow = windows.find(w => w.id === windowId);
+//         if (originalWindow && originalWindow.tabs.length === 1) {
+//             // Just update the existing window
+//             await chrome.windows.update(windowId, {
+//                 left: newLeft,
+//                 top: newTop,
+//                 width: winW,
+//                 height: winH,
+//                 state: "normal"
+//             });
+//         } else {
+//             // Create a new window for this tab
+//             await chrome.windows.create({
+//                 tabId: tabId,
+//                 left: newLeft,
+//                 top: newTop,
+//                 width: winW,
+//                 height: winH,
+//                 focused: false
+//             });
+//         }
+//     }
+// }
+
+// async function collapseAllTabs(targetWindowId) {
+//     // Get all windows with their tabs
+//     const windows = await chrome.windows.getAll({ populate: true, windowTypes: ['normal'] });
+    
+//     if (windows.length === 0) return;
+    
+//     // If no target window specified, use the first one
+//     if (!targetWindowId) {
+//         targetWindowId = windows[0].id;
+//     }
+    
+//     // Collect tabs from OTHER windows (not the current one)
+//     const tabsToMove = [];
+//     for (const win of windows) {
+//         if (win.id !== targetWindowId) {
+//             for (const tab of win.tabs) {
+//                 tabsToMove.push(tab.id);
+//             }
+//         }
+//     }
+
+//     console.log(tabsToMove);
+    
+//     // Move all tabs from other windows to the current window
+//     for (const tabId of tabsToMove) {
+//         try {
+//             await chrome.tabs.move(tabId, { windowId: targetWindowId, index: -1 });
+//         } catch (error) {
+//             console.error('Error moving tab:', error);
+//         }
+//     }
+    
+//     // Focus the target window
+//     await chrome.windows.update(targetWindowId, { focused: true, state: "normal" });
+
+//     // Maximize the target window to show all tabs clearly
+//     await chrome.windows.update(targetWindowId, { state: "maximized" });
+// }
+
 // Variable to track the size of the "last" window for the recursive shrinking effect
 let lastWidth = 1000; 
 let lastHeight = 800;
@@ -5,96 +223,74 @@ let isSpawningLoop = false; // Flag to prevent infinite loop
 
 async function getPrimaryWorkArea() {
     try {
-        const displays = await chrome.system.display.getInfo();
-        const primary = displays.find((d) => d.isPrimary) || displays[0];
-        const area = primary?.workArea;
-
-        if (area) {
-            return { width: area.width, height: area.height, left: area.left, top: area.top };
+        if (chrome.system && chrome.system.display) {
+            const displays = await chrome.system.display.getInfo();
+            const primary = displays.find((d) => d.isPrimary) || displays[0];
+            const area = primary?.workArea;
+            if (area) {
+                return { width: area.width, height: area.height, left: area.left, top: area.top };
+            }
         }
     } catch (err) {
         console.warn("Falling back to default screen size", err);
     }
-
     return { width: 1500, height: 900, left: 0, top: 0 };
 }
 
-// 1. LISTEN FOR NEW TABS (For Useless Mode)
-
-chrome.tabs.onCreated.addListener(async (tab) => {
-    const result = await chrome.storage.local.get("mode");
-    
-    // Ignore tabs created during the spawning loop
+// ==========================================
+// 1. HELPER: THE CHAOS LOGIC (Shared)
+// ==========================================
+async function detachAndStack(tab) {
+    // Ignore tabs created during the spawning loop to prevent infinite recursion
     if (isSpawningLoop) return;
+
+    // Check if we've hit the "too small" limit (triggers the finale)
+    const shouldLoop = lastWidth <= 450;
     
-    if (result.mode === 'useless') {
-        // Check if we've hit the "too small" limit
-        const shouldLoop = lastWidth <= 450;
-        // const shouldLoop = true
-        
-        if (shouldLoop) {
-            isSpawningLoop = true;
-
-            // Reset sizes BEFORE the loop
+    if (shouldLoop) {
+        isSpawningLoop = true;
+        try {
+            // Reset sizes and trigger the 10-window explosion
             await loopToCreateWindows(tab);
-
+        } finally {
             isSpawningLoop = false;
-
-        } else {
-            lastWidth = Math.floor(lastWidth * 0.8);
-            lastHeight = Math.floor(lastHeight * 0.8);
-            await createSingleWindow(tab, lastWidth, lastHeight);
         }
+    } else {
+        // Normal behavior: Shrink and stack
+        lastWidth = Math.floor(lastWidth * 0.9); // Shrink by 10%
+        lastHeight = Math.floor(lastHeight * 0.9);
+        
+        await createSingleWindow(tab, lastWidth, lastHeight);
+    }
+}
 
-        // Randomize position slightly
-        const randomLeft = Math.floor(Math.random() * 200); 
-        const randomTop = Math.floor(Math.random() * 200);
+async function createSingleWindow(tab, width, height) {
+    const randomOffset = Math.floor(Math.random() * 150);
+    const randomLeft = Math.floor(Math.random() * 200); 
+    const randomTop = Math.floor(Math.random() * 200);
 
-        // Shrink size by 10% each time, reset if too small
-        lastWidth = lastWidth * 0.9;
-        lastHeight = lastHeight * 0.9;
-        if (lastWidth < 200) { lastWidth = 1000; lastHeight = 800; }
-
-        chrome.windows.create({
+    try {
+        await chrome.windows.create({
             tabId: tab.id,
-            width: Math.floor(lastWidth),
-            height: Math.floor(lastHeight),
-            left: randomLeft + 100, // Offset to show stacking
+            width: width,
+            height: height,
+            left: randomLeft + 100, // Add offset to show stacking
             top: randomTop + 100,
             focused: true
         });
+    } catch (err) {
+        console.log("Tab detach failed (likely already closed):", err);
     }
-})
-
-// 2. LISTEN FOR MESSAGES (For Useful Mode)
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.action === "organize_windows") {
-        organizeWindows();
-    } else if (message.action === "collapse_tabs") {
-        collapseAllTabs(message.targetWindowId);
-    }
-});
-
-async function createSingleWindow(tab, lastWidth, lastHeight) {
-    // ALWAYS create a window
-    const randomOffset = Math.floor(Math.random() * 150);
-    await chrome.windows.create({
-        tabId: tab.id,
-        width: lastWidth,
-        height: lastHeight,
-        left: randomOffset + 50,
-        top: randomOffset + 50,
-        focused: true
-    });
 }
 
 async function loopToCreateWindows(tab) {
     lastWidth = 1000;
     lastHeight = 800;
 
+    // First, handle the actual tab that triggered this
     await createSingleWindow(tab, lastWidth, lastHeight);
 
-    // Now trigger the loop: open 10 more windows at random locations
+    // Now trigger the loop: open 10 more junk windows at random locations
     for (let i = 0; i < 10; i++) {
         const randomWidth = Math.floor(Math.random() * 400) + 400; // 400-800px
         const randomHeight = Math.floor(Math.random() * 300) + 300; // 300-600px
@@ -102,22 +298,67 @@ async function loopToCreateWindows(tab) {
         const randomTop = Math.floor(Math.random() * 500);
 
         // Create new tab and window
-        const newTab = await chrome.tabs.create({
-            active: false
-        });
+        const newTab = await chrome.tabs.create({ active: false });
         await chrome.windows.create({
             tabId: newTab.id,
             width: randomWidth,
             height: randomHeight,
             left: randomLeft,
             top: randomTop,
-            focused: false
+            focused: true
         });
 
-        // Small delay between windows for visual effect
+        // Small delay between windows for visual "pop" effect
         await new Promise(resolve => setTimeout(resolve, 100));
     }
 }
+
+// ==========================================
+// 2. FUNCTION TO PROCESS EXISTING TABS
+// ==========================================
+async function triggerImmediateChaos() {
+    // Get ALL tabs currently open in normal windows
+    const tabs = await chrome.tabs.query({ windowType: 'normal' });
+
+    // Loop through them one by one
+    for (const tab of tabs) {
+        if (isSpawningLoop) break; // Stop if the explosion started
+        await detachAndStack(tab);
+        // Visual delay for "dealing cards" effect
+        await new Promise(r => setTimeout(r, 150));
+    }
+}
+
+// ==========================================
+// 3. LISTENERS
+// ==========================================
+
+// Listen for NEW tabs
+chrome.tabs.onCreated.addListener(async (tab) => {
+    const result = await chrome.storage.local.get("mode");
+    
+    if (result.mode === 'useless') {
+        detachAndStack(tab);
+    }
+});
+
+// Listen for MESSAGES (Popup Buttons)
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.action === "organize_windows") {
+        organizeWindows();
+    } 
+    else if (message.action === "activate_useless_mode") {
+        // This triggers the chaos on ALREADY opened tabs
+        triggerImmediateChaos();
+    }
+    else if (message.action === "collapse_tabs") {
+        collapseAllTabs(message.targetWindowId);
+    }
+});
+
+// ==========================================
+// 4. USEFUL MODE & CLEANUP LOGIC
+// ==========================================
 
 async function organizeWindows() {
     // Get all windows with their tabs
@@ -156,39 +397,39 @@ async function organizeWindows() {
         const originalWindow = windows.find(w => w.id === windowId);
         if (originalWindow && originalWindow.tabs.length === 1) {
             // Just update the existing window
-            await chrome.windows.update(windowId, {
-                left: newLeft,
-                top: newTop,
-                width: winW,
-                height: winH,
-                state: "normal"
-            });
+            try {
+                await chrome.windows.update(windowId, {
+                    left: newLeft,
+                    top: newTop,
+                    width: winW,
+                    height: winH,
+                    state: "normal"
+                });
+            } catch (e) {}
         } else {
             // Create a new window for this tab
-            await chrome.windows.create({
-                tabId: tabId,
-                left: newLeft,
-                top: newTop,
-                width: winW,
-                height: winH,
-                focused: false
-            });
+            try {
+                await chrome.windows.create({
+                    tabId: tabId,
+                    left: newLeft,
+                    top: newTop,
+                    width: winW,
+                    height: winH,
+                    focused: false
+                });
+            } catch (e) {}
         }
     }
 }
 
 async function collapseAllTabs(targetWindowId) {
-    // Get all windows with their tabs
     const windows = await chrome.windows.getAll({ populate: true, windowTypes: ['normal'] });
-    
     if (windows.length === 0) return;
     
-    // If no target window specified, use the first one
     if (!targetWindowId) {
         targetWindowId = windows[0].id;
     }
     
-    // Collect tabs from OTHER windows (not the current one)
     const tabsToMove = [];
     for (const win of windows) {
         if (win.id !== targetWindowId) {
@@ -198,9 +439,6 @@ async function collapseAllTabs(targetWindowId) {
         }
     }
 
-    console.log(tabsToMove);
-    
-    // Move all tabs from other windows to the current window
     for (const tabId of tabsToMove) {
         try {
             await chrome.tabs.move(tabId, { windowId: targetWindowId, index: -1 });
@@ -209,10 +447,6 @@ async function collapseAllTabs(targetWindowId) {
         }
     }
     
-    // Focus the target window
     await chrome.windows.update(targetWindowId, { focused: true, state: "normal" });
-
-    // Maximize the target window to show all tabs clearly
     await chrome.windows.update(targetWindowId, { state: "maximized" });
 }
-
