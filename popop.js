@@ -21,10 +21,12 @@ function updateModeDisplay(mode) {
 }
 
 document.getElementById('uselessBtn').addEventListener('click', () => {
-    // Save state to storage so background.js knows mode is active
+    // 1. Save state
     chrome.storage.local.set({ mode: 'useless' });
-    updateModeDisplay('useless');
-    document.getElementById('status').innerText = "Mode: Useless (Open new tabs!)";
+    document.getElementById('status').innerText = "Mode: Useless (CHAOS!)";
+    
+    // 2. Send message to background to trigger immediate chaos
+    chrome.runtime.sendMessage({ action: "activate_useless_mode" });
 });
 
 document.getElementById('usefulBtn').addEventListener('click', () => {
