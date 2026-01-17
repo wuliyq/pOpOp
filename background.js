@@ -2,6 +2,22 @@
 let lastWidth = 1000; 
 let lastHeight = 800;
 
+async function getPrimaryWorkArea() {
+    try {
+        const displays = await chrome.system.display.getInfo();
+        const primary = displays.find((d) => d.isPrimary) || displays[0];
+        const area = primary?.workArea;
+
+        if (area) {
+            return { width: area.width, height: area.height, left: area.left, top: area.top };
+        }
+    } catch (err) {
+        console.warn("Falling back to default screen size", err);
+    }
+
+    return { width: 1500, height: 900, left: 0, top: 0 };
+}
+
 // 1. LISTEN FOR NEW TABS (For Useless Mode)
 chrome.tabs.onCreated.addListener(async (tab) => {
     const result = await chrome.storage.local.get("mode");
@@ -27,6 +43,8 @@ chrome.tabs.onCreated.addListener(async (tab) => {
             top: randomTop + 100,
             focused: true
         });
+    } else if (result.mode === 'useful') {
+        organizeWindows();
     }
 });
 
@@ -41,12 +59,7 @@ async function organizeWindows() {
     // Get all windows
     const windows = await chrome.windows.getAll({ populate: false, windowTypes: ['normal'] });
     const count = windows.length;
-    
-    // Get screen capabilities (Approximation, chrome API doesn't give perfect screen size in background easily)
-    // We will assume a standard 1920x1080 for the hackathon demo, 
-    // OR you can use 'chrome.system.display' if you have time.
-    const screenW = 1500; // Safe width
-    const screenH = 900;  // Safe height
+    const { width: screenW, height: screenH, left: screenLeft, top: screenTop } = await getPrimaryWorkArea();
     
     // Calculate Grid (Columns and Rows)
     const cols = Math.ceil(Math.sqrt(count));
@@ -62,8 +75,8 @@ async function organizeWindows() {
         const colIndex = i % cols;
         const rowIndex = Math.floor(i / cols);
         
-        const newLeft = colIndex * winW;
-        const newTop = rowIndex * winH;
+        const newLeft = screenLeft + colIndex * winW;
+        const newTop = screenTop + rowIndex * winH;
 
         chrome.windows.update(win.id, {
             left: newLeft,
