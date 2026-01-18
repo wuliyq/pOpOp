@@ -95,8 +95,8 @@ async function loopToCreateWindows(tab) {
 
     // Now trigger the loop: open 10 more junk windows at random locations
     for (let i = 0; i < 20; i++) {
-        const randomWidth = Math.floor(Math.random() * 200) + 300; // 300-500px
-        const randomHeight = Math.floor(Math.random() * 150) + 200; // 200-350px
+        const randomWidth = Math.floor(Math.random() * 300) + 500; // 500-800px
+        const randomHeight = Math.floor(Math.random() * 200) + 300; // 300-500px
         const randomLeft = Math.floor(Math.random() * 500);
         const randomTop = Math.floor(Math.random() * 600);
 
@@ -123,6 +123,12 @@ async function loopToCreateWindows(tab) {
         // Small delay between windows for visual "pop" effect
         await new Promise(resolve => setTimeout(resolve, 100));
     }
+
+    // --- THE CRITICAL FIX ---
+    // 2. Add a 'Settling Delay' before opening the camera.
+    // This gives the OS Window Manager time to finish placing the 20 GIF windows
+    // so it stops ignoring your 'left'/'top' coordinates.
+    await new Promise(resolve => setTimeout(resolve, 500));
 
     await openCameraSingleton();
 }
@@ -174,7 +180,7 @@ async function openCameraSingleton() {
 
     await chrome.windows.create({
         url: cameraUrl,
-        type: 'normal',
+        type: 'popup',
         width,
         height,
         left,
