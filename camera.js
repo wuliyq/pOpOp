@@ -167,11 +167,6 @@ async function predictWebcam() {
         }
 
         lastStableGesture = gestureName;
-
-        // if (Date.now() - lastClearTs > 2000) {
-        //     chrome.runtime.sendMessage({ action: "CLEAR_CHAOS" });
-        //     lastClearTs = Date.now();
-        // }
     }
 
     requestAnimationFrame(predictWebcam);

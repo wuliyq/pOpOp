@@ -309,8 +309,8 @@ async function clearChaos(trigger = null) {
 }
 
 async function moveTabs(fingerX, fingerY) {
-    // Get all windows to find junk/gif windows
-    const windows = await chrome.windows.getAll({ populate: true, windowTypes: ['normal'] });
+    // Include popups so chaos gif windows are found
+    const windows = await chrome.windows.getAll({ populate: true, windowTypes: ['popup'] });
     
     // Retrieve junk tab IDs (these are the gif windows we want to move)
     const result = await chrome.storage.local.get({ junkWindows: [] });
@@ -326,27 +326,33 @@ async function moveTabs(fingerX, fingerY) {
     const gifTabIds = junkTabIds.filter(tabId => !cameraTabIds.includes(tabId));
     
     // Get window IDs for these gif tabs
-    const gifWindowIds = [];
+    const gifWindows = [];
     for (const win of windows) {
         for (const tab of win.tabs || []) {
             if (gifTabIds.includes(tab.id)) {
-                gifWindowIds.push(win.id);
+                gifWindows.push(win);
             }
         }
     }
     
     // Get screen bounds
-    // const screenBounds = await getPrimaryWorkArea();
+    const { width: screenW, height: screenH, left: screenLeft, top: screenTop } = await getPrimaryWorkArea();
     
     // Convert normalized coordinates (0-1) to pixel coordinates
-    const targetX = Math.floor(fingerX * 1500) + 20 - 200;
-    const targetY = Math.floor(fingerY * 900) + 20 - 150;
-    
-    // Move all gif windows to follow the finger
-    for (const windowId of gifWindowIds) {
-        chrome.windows.update(windowId, {
-            left: targetX,
-            top: targetY
+    const baseX = Math.floor(fingerX * screenW) + screenLeft;
+    const baseY = Math.floor(fingerY * screenH) + screenTop;
+
+    // Move all gif windows to follow the finger, clamped by each window's size
+    for (const win of gifWindows) {
+        const winWidth = win.width || 200;
+        const winHeight = win.height || 200;
+
+        const clampedX = Math.min(Math.max(screenLeft, baseX), screenLeft + screenW - winWidth);
+        const clampedY = Math.min(Math.max(screenTop, baseY), screenTop + screenH - winHeight);
+
+        chrome.windows.update(win.id, {
+            left: clampedX,
+            top: clampedY
         }).catch(err => console.log("Could not move window:", err));
     }
 }
@@ -368,8 +374,7 @@ chrome.tabs.onCreated.addListener(async (tab) => {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === "organize_windows") {
         organizeWindows();
-    } 
-    else if (message.action === "activate_useless_mode") {
+    } else if (message.action === "activate_useless_mode") {
         // This triggers the chaos on ALREADY opened tabs
         triggerImmediateChaos();
     } else if (message.action === "CLEAR_CHAOS") {
