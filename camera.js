@@ -145,10 +145,25 @@ async function predictWebcam() {
 
             updateStatus("✊ Closed fist detected → clearing chaos, collapsing tabs");
         // } else if (lastStableGesture === "Closed_Fist" && gestureName === "Open_Palm") {
-        } else if (gestureName === "Thumb_Up" && lastStableGesture !== "Thumb_Up") {
+        } else if (gestureName === "Thumb_Down" && lastStableGesture !== "Thumb_Down") {
             chrome.storage.local.set({ mode: "useful" });
             chrome.runtime.sendMessage({ action: "organize_windows" });
-            updateStatus("👍 Thumbs up detected → useful mode activated, organizing windows");
+            updateStatus("Thumbs down detected → useful mode activated, organizing windows");
+        } else if (gestureName === "Pointing_Up") {
+            const hand = results.landmarks[0];
+            const indexTip = hand[8]; // Landmark 8 is the Index Finger Tip
+            
+            // Send the raw normalized coordinates (0.0 to 1.0) to background
+            // We flip X (1 - x) because the webcam is usually mirrored
+            chrome.runtime.sendMessage({
+                action: "update_finger_position",
+                x: 1 - indexTip.x, 
+                y: indexTip.y
+            });
+            
+            // Optional: Update status text so you know it's working
+            const statusEl = document.getElementById("status");
+            if (statusEl) statusEl.innerText = "Tracking Finger...";
         }
 
         lastStableGesture = gestureName;
