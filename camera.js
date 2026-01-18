@@ -145,10 +145,10 @@ async function predictWebcam() {
 
             updateStatus("✊ Closed fist detected → clearing chaos, collapsing tabs");
         // } else if (lastStableGesture === "Closed_Fist" && gestureName === "Open_Palm") {
-        } else if (gestureName === "Thumb_Down" && lastStableGesture !== "Thumb_Down") {
+        } else if (gestureName === "Thumb_Up" && lastStableGesture !== "Thumb_Up") {
             chrome.storage.local.set({ mode: "useful" });
             chrome.runtime.sendMessage({ action: "organize_windows" });
-            updateStatus("Thumbs down detected → useful mode activated, organizing windows");
+            updateStatus("Thumbs up detected → useful mode activated, organizing windows");
         } else if (gestureName === "Pointing_Up") {
             const hand = results.landmarks[0];
             const indexTip = hand[8]; // Landmark 8 is the Index Finger Tip
