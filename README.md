@@ -15,6 +15,7 @@ The standout feature of pOpOp is its **touchless interface**. By deploying **Med
 Instead of fumbling for keyboard shortcuts, you can manage your browser environment using natural hand movements:
 * **🖐️ Open Paw to Close Fist:** This is a command to close "junk" windows and resets your workspace by collapsing all the open tabs into a single window.
 * **👍 Thumbs Up:** This transition triggers the "Useful" mode, automatically tiling all open windows into a perfect grid on your screen.
+* **☝️ Point up:** Point up and move you finger slowly, and all the popup gif windows will move with your finger. And you can feel like you are a magician 🧙.
 
 ---
 
@@ -47,6 +48,7 @@ Use this for a prank or a bit of digital entertainment.
 * **Step 1:** Select **Useless Mode** from the popup.
 * **Step 2:** Watch as your tabs begin to pop up randomly across the screen.
 * **Step 3 (The Prank):** If you continue to open new tabs, "Dancing Man" window popups will appear in an infinite loop.
+* **Step 4(Magician Moment):** Point up and move you finger slowly, and all the popup gif windows will move with your finger. And you can feel like you are a magician 🧙.
 * **Step 4 (The Rescue and back to normal):** Don't worry—simply pull your **Open Paw to Fist** at the camera to clear the chaos and return all tabs to their usual state.
 
 #### ⌨️ Manual Navigation & Modes
