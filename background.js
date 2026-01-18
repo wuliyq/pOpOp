@@ -146,20 +146,40 @@ async function triggerImmediateChaos() {
 async function openCameraSingleton() {
     const cameraUrl = chrome.runtime.getURL('camera.html');
     const existing = await chrome.tabs.query({ url: `${cameraUrl}*` });
-
+    // Close any existing camera windows so we always open a fresh one
     if (existing && existing.length) {
-        const tab = existing[0];
-        await chrome.windows.update(tab.windowId, { focused: true });
-        await chrome.tabs.update(tab.id, { active: true });
-        return;
+        const seen = new Set();
+        for (const tab of existing) {
+            if (tab.windowId && !seen.has(tab.windowId)) {
+                seen.add(tab.windowId);
+                try {
+                    await chrome.windows.remove(tab.windowId);
+                } catch (err) {
+                    console.log("Could not close existing camera window:", err);
+                }
+            }
+        }
     }
+
+    const { width: screenW, height: screenH, left: screenLeft, top: screenTop } = await getPrimaryWorkArea();
+    const desiredW = 160;
+    const desiredH = 120;
+    const width = Math.min(desiredW, screenW);
+    const height = Math.min(desiredH, screenH);
+    const inset = 20;
+    // const left = Math.min(Math.max(screenLeft + inset, screenLeft), screenLeft + screenW - width);
+    // const top = Math.min(Math.max(screenTop + inset, screenTop), screenTop + screenH - height);
+    const left = screenLeft + screenW - width - inset;
+    const top = screenTop + screenH - height - inset;
 
     await chrome.windows.create({
         url: cameraUrl,
         type: 'normal',
-        width: 200,
-        height: 150,
-        focused: true
+        width,
+        height,
+        left,
+        top,
+        focused: false
     });
 }
 

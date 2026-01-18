@@ -135,17 +135,17 @@ async function predictWebcam() {
             // Ensure CLEAR_CHAOS finishes; collapse_tabs only if we have a valid window
             await chrome.runtime.sendMessage({ action: "CLEAR_CHAOS", trigger: "gesture" });
 
-            try {
-                const currentWin = await chrome.windows.getCurrent();
-                if (currentWin && currentWin.id) {
-                    await chrome.runtime.sendMessage({ 
-                        action: "collapse_tabs",
-                        targetWindowId: currentWin.id 
-                    });
-                }
-            } catch (e) {
-                console.log("collapse_tabs skipped (no current window):", e);
-            }
+            // try {
+            //     const currentWin = await chrome.windows.getCurrent();
+            //     if (currentWin && currentWin.id) {
+            //         await chrome.runtime.sendMessage({ 
+            //             action: "collapse_tabs",
+            //             targetWindowId: currentWin.id 
+            //         });
+            //     }
+            // } catch (e) {
+            //     console.log("collapse_tabs skipped (no current window):", e);
+            // }
 
             updateStatus("✊ Closed fist detected → clearing chaos, collapsing tabs");
         // } else if (lastStableGesture === "Closed_Fist" && gestureName === "Open_Palm") {
