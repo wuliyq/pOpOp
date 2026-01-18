@@ -1,5 +1,7 @@
 # README.md
 
+![Image](assets/UI.png)
+
 ## 🪟 Windowdow: Introducing pOpOp
 
 Welcome to **Windowdow**, where we believe managing your digital workspace should be as natural as a wave of your hand. Our flagship product, **pOpOp**, is a Chrome extension designed to transform the "tab-hoarding" experience into a streamlined, gesture-controlled workflow.
