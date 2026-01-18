@@ -2,88 +2,181 @@
 <html>
   <head>
     <style>
+      @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+
       body { 
         /* Dynamic sizing - adapts to popup dimensions */
         width: 100vw; 
         height: 100vh;
         min-width: 200px;
-        min-height: 260px;
-        padding: 3vh 4vw 0vh 4vw; 
-        font-family: sans-serif; 
+        min-height: 200px;
+        padding: 8px 16px; 
+        font-family: 'Poppins', sans-serif; 
         box-sizing: border-box;
-
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        
         /* Centering Logic */
         display: flex;
-        flex-direction: column; /* Stack elements vertically */
-        justify-content: center; /* Center vertically */
-        align-items: center;     /* Center horizontally */
-        margin: 0;               /* Remove default browser margins */
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        margin: 0;
+        color: #ffffff;
       }
 
-      button { 
-        width: 90%; 
-        max-width: 400px;
-        margin: 1.5vh 0; 
-        padding: clamp(8px, 2vh, 20px); 
-        cursor: pointer; 
-        font-weight: bold; 
-        font-size: clamp(12px, 2.5vw, 18px);
-        border-radius: clamp(3px, 0.8vh, 8px);
-        border: none;
-        transition: transform 0.2s;
-      }
-
-      button:hover {
-        transform: scale(1.05);
-      }
-
-      #uselessBtn { background-color: #ff4d4d; color: white; }
-      #usefulBtn { background-color: #4CAF50; color: white; }
-      
       h3 { 
-        margin-top: 0;
-        margin-bottom: 2vh;
-        font-size: clamp(14px, 3vw, 24px);
-      }
-
-      #status {
-        font-size: clamp(10px, 1.8vw, 14px);
-        color: #666;
-        margin-top: 1vh;
+        margin-top: 8px;
+        margin-bottom: 4px;
+        font-size: 17px;
+        font-weight: 700;
         text-align: center;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        letter-spacing: 0.5px;
       }
 
       #currentMode {
-        font-size: clamp(12px, 2vw, 16px);
-        font-weight: bold;
-        margin: 2vh 0;
-        padding: 1vh 2vw;
-        border-radius: clamp(3px, 0.8vh, 8px);
-        background-color: #f0f0f0;
+        font-size: 10px;
+        font-weight: 600;
+        margin: 0 0 6px 0;
+        padding: 4px 10px;
+        border-radius: 12px;
+        background-color: rgba(255, 255, 255, 0.25);
+        backdrop-filter: blur(10px);
         text-align: center;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+        transition: all 0.3s ease;
       }
 
-      #disableBtn {
-        background-color: #999;
-        color: white;
+      button { 
+        width: 100%; 
+        max-width: 280px;
+        margin: 2px 0; 
+        padding: 8px 14px; 
+        cursor: pointer; 
+        font-weight: 600; 
+        font-size: 12px;
+        border-radius: 7px;
+        border: none;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        transition: all 0.3s ease;
+        font-family: 'Poppins', sans-serif;
+        position: relative;
+        overflow: visible;
+        line-height: 1.2;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+      }
+
+      button::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        border-radius: 7px;
+        background: rgba(255,255,255,0.2);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        pointer-events: none;
+      }
+
+      button:hover::before {
+        opacity: 1;
+      }
+
+      button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+      }
+
+      button:active {
+        transform: translateY(0);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      }
+
+      button span {
+        position: relative;
+        z-index: 1;
+      }
+
+      #uselessBtn { 
+        background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+        color: white; 
+      }
+
+      #usefulBtn { 
+        background: linear-gradient(135deg, #51cf66 0%, #37b24d 100%);
+        color: white; 
+      }
+
+      #cameraBtn {
+        background: linear-gradient(135deg, #ffd93d 0%, #ffb03b 100%);
+        color: #2d3436;
       }
 
       #collapseBtn {
-        background-color: #2196F3;
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
         color: white;
+      }
+      
+      #disableBtn {
+        background: linear-gradient(135deg, #8395a7 0%, #576574 100%);
+        color: white;
+      }
+
+      #statusText {
+        margin-top: 4px;
+        width: 100%;
+        max-width: 280px;
+      }
+
+      #status {
+        font-size: 10px;
+        color: rgba(255, 255, 255, 0.85);
+        text-align: center;
+        padding: 4px;
+        background: rgba(0, 0, 0, 0.15);
+        border-radius: 5px;
+        backdrop-filter: blur(5px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        min-height: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      /* Scrollbar styling for overflow */
+      ::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.3);
+        border-radius: 10px;
+      }
+
+      ::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.5);
       }
     </style>
   </head>
   <body>
-    <h3>Choose Your Mode</h3>
+    <h3>pOpOp Dashboard</h3>
     <div id="currentMode">Current Mode: None</div>
-    <button id="uselessBtn">Useless Mode</button>
-    <button id="usefulBtn">Useful Mode</button>
-    <button id="cameraBtn">Open Camera</button>
-    <button id="collapseBtn">Collapse All Tabs</button>
-    <button id="disableBtn">Disable Mode</button>
+    <button id="uselessBtn"><span>Useless Mode</span></button>
+    <button id="usefulBtn"><span>Useful Mode</span></button>
+    <button id="cameraBtn"><span>Open Camera</span></button>
+    <button id="collapseBtn"><span>Collapse All Tabs</span></button>
+    <button id="disableBtn"><span>Disable Mode</span></button>
     <div id="statusText">
-      <p id="status" style="font-size: 12px; color: #666;">Click a button above :P</p>
+      <p id="status">Click a button above</p>
     </div>
     <script src="popop.js"></script>
   </body>
