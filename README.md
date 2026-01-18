@@ -13,7 +13,7 @@ We’ve all been there: you start with one task, and an hour later, your browser
 The standout feature of pOpOp is its **touchless interface**. By deploying **MediaPipe**, we’ve turned your webcam into a high-fidelity gesture sensor. 
 
 Instead of fumbling for keyboard shortcuts, you can manage your browser environment using natural hand movements:
-* **🖐️ Open Paw to Close Fist:** This is a command to close "junk" windows and resets your workspace by collapsing all the open tabs into a single window.
+* **🖐️ Open Paw to ✊ Closed Fist:** This is a command to close "junk" windows and resets your workspace by collapsing all the open tabs into a single window.
 * **👍 Thumbs Up:** This transition triggers the "Useful" mode, automatically tiling all open windows into a perfect grid on your screen.
 * **☝️ Point up:** Point up and move you finger slowly, and all the popup gif windows will move with your finger. And you can feel like you are a magician 🧙.
 
