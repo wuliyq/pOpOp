@@ -82,14 +82,16 @@ document.getElementById('cameraBtn').addEventListener('click', async () => {
 
     const { width: screenW, height: screenH, left: screenLeft, top: screenTop } = await getPrimaryWorkArea();
 
-    const desiredW = 960;
-    const desiredH = 1080;
+    const desiredW = 160;
+    const desiredH = 120;
+    
     const width = Math.min(desiredW, screenW);
     const height = Math.min(desiredH, screenH);
 
-    // Center within the work area and clamp to keep fully visible
-    const left = Math.min(Math.max(screenLeft, screenLeft + Math.floor((screenW - width) / 2)), screenLeft + screenW - width);
-    const top = Math.min(Math.max(screenTop, screenTop + Math.floor((screenH - height) / 2)), screenTop + screenH - height);
+    // Park near top-left, with a small inset and clamped to visible area
+    const inset = 20;
+    const left = Math.min(Math.max(screenLeft + inset, screenLeft), screenLeft + screenW - width);
+    const top = Math.min(Math.max(screenTop + inset, screenTop), screenTop + screenH - height);
     
     await chrome.windows.create({
         url: cameraUrl,
