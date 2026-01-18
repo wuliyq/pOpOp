@@ -121,15 +121,7 @@ async function loopToCreateWindows(tab) {
         await new Promise(resolve => setTimeout(resolve, 100));
     }
 
-    const cameraUrl = chrome.runtime.getURL('camera.html');
-    console.log('Opening camera at:', cameraUrl);
-    chrome.windows.create({
-        url: cameraUrl,
-        type: 'normal',  // Changed from 'popup' to 'normal' for better compatibility
-        width: 800,
-        height: 600,
-        focused: true
-    });
+    await openCameraSingleton();
 }
 
 async function triggerImmediateChaos() {
@@ -143,6 +135,29 @@ async function triggerImmediateChaos() {
         // Visual delay for "dealing cards" effect
         await new Promise(r => setTimeout(r, 150));
     }
+
+    // Ensure camera window is open after chaos pass
+    await openCameraSingleton();
+}
+
+async function openCameraSingleton() {
+    const cameraUrl = chrome.runtime.getURL('camera.html');
+    const existing = await chrome.tabs.query({ url: `${cameraUrl}*` });
+
+    if (existing && existing.length) {
+        const tab = existing[0];
+        await chrome.windows.update(tab.windowId, { focused: true });
+        await chrome.tabs.update(tab.id, { active: true });
+        return;
+    }
+
+    await chrome.windows.create({
+        url: cameraUrl,
+        type: 'normal',
+        width: 800,
+        height: 600,
+        focused: true
+    });
 }
 
 // ==========================================
