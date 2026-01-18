@@ -3,6 +3,22 @@ chrome.storage.local.get('mode', (result) => {
     updateModeDisplay(result.mode || 'none');
 });
 
+async function getPrimaryWorkArea() {
+    try {
+        if (chrome.system && chrome.system.display) {
+            const displays = await chrome.system.display.getInfo();
+            const primary = displays.find((d) => d.isPrimary) || displays[0];
+            const area = primary?.workArea;
+            if (area) {
+                return { width: area.width, height: area.height, left: area.left, top: area.top };
+            }
+        }
+    } catch (err) {
+        console.warn("Falling back to default screen size", err);
+    }
+    return { width: 1500, height: 900, left: 0, top: 0 };
+}
+
 function updateModeDisplay(mode) {
     const modeDisplay = document.getElementById('currentMode');
     if (mode === 'useless') {
@@ -60,17 +76,28 @@ document.getElementById('collapseBtn').addEventListener('click', async () => {
 });
 
 document.getElementById('cameraBtn').addEventListener('click', async () => {
-    // Open camera.html as half-screen window first
+    // Open camera.html near center, clamped to visible work area to avoid bounds errors
     const cameraUrl = chrome.runtime.getURL('camera.html');
     console.log('Opening camera at:', cameraUrl);
+
+    const { width: screenW, height: screenH, left: screenLeft, top: screenTop } = await getPrimaryWorkArea();
+
+    const desiredW = 960;
+    const desiredH = 1080;
+    const width = Math.min(desiredW, screenW);
+    const height = Math.min(desiredH, screenH);
+
+    // Center within the work area and clamp to keep fully visible
+    const left = Math.min(Math.max(screenLeft, screenLeft + Math.floor((screenW - width) / 2)), screenLeft + screenW - width);
+    const top = Math.min(Math.max(screenTop, screenTop + Math.floor((screenH - height) / 2)), screenTop + screenH - height);
     
-    chrome.windows.create({
+    await chrome.windows.create({
         url: cameraUrl,
         type: 'normal',
-        width: 960,
-        height: 1080,
-        left: 960,
-        top: 0,
+        width,
+        height,
+        left,
+        top,
         state: 'normal',
         focused: true
     });

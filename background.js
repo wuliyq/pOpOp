@@ -2,6 +2,9 @@
 let lastWidth = 1000; 
 let lastHeight = 800;
 let isSpawningLoop = false; // Flag to prevent infinite loop
+// Track last finger position to derive motion direction
+let lastFingerX = null;
+let lastFingerY = null;
 
 async function getPrimaryWorkArea() {
     try {
@@ -92,8 +95,8 @@ async function loopToCreateWindows(tab) {
 
     // Now trigger the loop: open 10 more junk windows at random locations
     for (let i = 0; i < 20; i++) {
-        const randomWidth = Math.floor(Math.random() * 400) + 600; // 600-1000px
-        const randomHeight = Math.floor(Math.random() * 300) + 500; // 500-800px
+        const randomWidth = Math.floor(Math.random() * 200) + 300; // 300-500px
+        const randomHeight = Math.floor(Math.random() * 150) + 200; // 200-350px
         const randomLeft = Math.floor(Math.random() * 500);
         const randomTop = Math.floor(Math.random() * 600);
 
@@ -137,7 +140,7 @@ async function triggerImmediateChaos() {
     }
 
     // Ensure camera window is open after chaos pass
-    await openCameraSingleton();
+    // await openCameraSingleton();
 }
 
 async function openCameraSingleton() {
@@ -154,8 +157,8 @@ async function openCameraSingleton() {
     await chrome.windows.create({
         url: cameraUrl,
         type: 'normal',
-        width: 800,
-        height: 600,
+        width: 200,
+        height: 150,
         focused: true
     });
 }
@@ -335,24 +338,49 @@ async function moveTabs(fingerX, fingerY) {
         }
     }
     
-    // Get screen bounds
-    const { width: screenW, height: screenH, left: screenLeft, top: screenTop } = await getPrimaryWorkArea();
-    
-    // Convert normalized coordinates (0-1) to pixel coordinates
-    const baseX = Math.floor(fingerX * screenW) + screenLeft;
-    const baseY = Math.floor(fingerY * screenH) + screenTop;
+    if (!gifWindows.length) return;
 
-    // Move all gif windows to follow the finger, clamped by each window's size
+    // Get screen bounds to scale finger deltas into pixels and clamp updates
+    const { width: screenW, height: screenH, left: screenLeft, top: screenTop } = await getPrimaryWorkArea();
+
+    // Initialize last finger position and skip first frame to avoid jump
+    if (lastFingerX === null || lastFingerY === null) {
+        lastFingerX = fingerX;
+        lastFingerY = fingerY;
+        return;
+    }
+
+    // Finger movement delta (normalized) scaled to pixels
+    const deltaX = (fingerX - lastFingerX) * screenW;
+    const deltaY = (fingerY - lastFingerY) * screenH;
+
+    // Update stored finger position
+    lastFingerX = fingerX;
+    lastFingerY = fingerY;
+
+    // Cap speed so movement stays slow and consistent
+    const maxStep = 40; // px per update
+    const stepX = Math.max(-maxStep, Math.min(maxStep, deltaX));
+    const stepY = Math.max(-maxStep, Math.min(maxStep, deltaY));
+
+    // Move every gif window by the same delta from its current position
     for (const win of gifWindows) {
         const winWidth = win.width || 200;
         const winHeight = win.height || 200;
 
-        const clampedX = Math.min(Math.max(screenLeft, baseX), screenLeft + screenW - winWidth);
-        const clampedY = Math.min(Math.max(screenTop, baseY), screenTop + screenH - winHeight);
+        const currentX = win.left ?? screenLeft;
+        const currentY = win.top ?? screenTop;
+
+        const candidateX = currentX + stepX;
+        const candidateY = currentY + stepY;
+
+        // Clamp so the whole window stays on-screen (avoids Chrome bounds error)
+        const clampedX = Math.min(Math.max(screenLeft, candidateX), screenLeft + screenW - winWidth);
+        const clampedY = Math.min(Math.max(screenTop, candidateY), screenTop + screenH - winHeight);
 
         chrome.windows.update(win.id, {
-            left: clampedX,
-            top: clampedY
+            left: Math.floor(clampedX),
+            top: Math.floor(clampedY)
         }).catch(err => console.log("Could not move window:", err));
     }
 }

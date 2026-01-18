@@ -132,16 +132,20 @@ async function predictWebcam() {
 
         // Transition-based controls (allow gaps where no gesture was detected)
         if (lastStableGesture === "Open_Palm" && gestureName === "Closed_Fist") {
-            // const windows = await chrome.windows.getAll({ windowTypes: ['normal'] });
-            // const lastFocused = await chrome.windows.getCurrent() || windows[0];
-
-            // Ensure CLEAR_CHAOS finishes before collapsing
+            // Ensure CLEAR_CHAOS finishes; collapse_tabs only if we have a valid window
             await chrome.runtime.sendMessage({ action: "CLEAR_CHAOS", trigger: "gesture" });
 
-            // await chrome.runtime.sendMessage({ 
-            //     action: "collapse_tabs",
-            //     targetWindowId: lastFocused.id 
-            // });
+            try {
+                const currentWin = await chrome.windows.getCurrent();
+                if (currentWin && currentWin.id) {
+                    await chrome.runtime.sendMessage({ 
+                        action: "collapse_tabs",
+                        targetWindowId: currentWin.id 
+                    });
+                }
+            } catch (e) {
+                console.log("collapse_tabs skipped (no current window):", e);
+            }
 
             updateStatus("✊ Closed fist detected → clearing chaos, collapsing tabs");
         // } else if (lastStableGesture === "Closed_Fist" && gestureName === "Open_Palm") {
