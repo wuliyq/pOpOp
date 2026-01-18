@@ -13,8 +13,10 @@ We’ve all been there: you start with one task, and an hour later, your browser
 The standout feature of pOpOp is its **touchless interface**. By deploying **MediaPipe**, we’ve turned your webcam into a high-fidelity gesture sensor. 
 
 Instead of fumbling for keyboard shortcuts, you can manage your browser environment using natural hand movements:
-* **🤌 Five Fingers Inward (Collapse):** Making a "grabbing" or inward gesture triggers a command to close "junk" windows and resets your workspace by collapsing all the open tabs into a single window.
+* **🖐️ Paw to Fist:** This is a command to close "junk" windows and resets your workspace by collapsing all the open tabs into a single window.
 * **👍 Thumbs Up:** This transition triggers the "Useful" mode, automatically tiling all open windows into a perfect grid on your screen.
+* **👊 Fist to Paw:** This resets your workspace by collapsing all the open tabs into a single window. 
+
 
 
 ---
@@ -38,19 +40,17 @@ Choose your experience based on whether you need peak productivity or a quick la
 
 #### 🟢 Useful Mode: The "Search & Settle" Workflow
 Use this when you have too many tabs open and want to avoid checking them one-by-one.
-* **Step 1:** Click the extension icon and select **Useful Mode**.
-* **Step 2:** Click **Open Camera** to launch the sensor (or use manual buttons in the popup).
-* **Step 3 (Organize):** Perform the **Thumbs Up** gesture. All tabs will instantly arrange into a clear grid.
-* **Step 4 (Review):** Easily view everything you have open. Close what you don't need and click into the one you want.
-* **Step 5 (Consolidate):** Once settled, perform the gesture **Five Fingers Inward (Collapse)**. All remaining tabs will collapse into a single window for a clean workspace.
+* **Step 1:** Click **Open Camera** to launch the sensor (or use manual buttons in the popup).
+* **Step 2 (Organize):** Perform the **Thumbs Up** gesture. All tabs will instantly arrange into a clear grid.
+* **Step 3 (Review):** Easily view everything you have open. Close what you don't need and click into the one you want.
+* **Step 4 (Consolidate):** Once settled, perform the gesture **Paw to Fist**. All remaining tabs will collapse into a single window for a clean workspace.
 
 #### 🔴 Useless Mode: The "Entertaining Chaos" Workflow
 Use this for a prank or a bit of digital entertainment.
 * **Step 1:** Select **Useless Mode** from the popup.
 * **Step 2:** Watch as your tabs begin to pop up randomly across the screen.
 * **Step 3 (The Prank):** If you continue to open new tabs, "Dancing Man" window popups will appear in an infinite loop.
-* **Step 4 (The Rescue):** Don't worry—simply **Wave your hands** at the camera to clear the chaos. 
-* **Step 5 (Back to Normal):** Pull your **Five Fingers Inward (Collapse)** to return all tabs to their usual state.
+* **Step 4 (The Rescue and back to normal):** Don't worry—simply pull your **Fist to Paw** at the camera to clear the chaos and return all tabs to their usual state.
 
 #### ⌨️ Manual Navigation & Modes
 Don't want to use the camera? No problem.
