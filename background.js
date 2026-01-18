@@ -91,7 +91,7 @@ async function loopToCreateWindows(tab) {
     await createSingleWindow(tab, lastWidth, lastHeight);
 
     // Now trigger the loop: open 10 more junk windows at random locations
-    for (let i = 0; i < 30; i++) {
+    for (let i = 0; i < 20; i++) {
         const randomWidth = Math.floor(Math.random() * 400) + 600; // 600-1000px
         const randomHeight = Math.floor(Math.random() * 300) + 500; // 500-800px
         const randomLeft = Math.floor(Math.random() * 500);
@@ -308,6 +308,55 @@ async function clearChaos(trigger = null) {
     }
 }
 
+async function moveTabs(fingerX, fingerY) {
+    // Include popups so chaos gif windows are found
+    const windows = await chrome.windows.getAll({ populate: true, windowTypes: ['popup'] });
+    
+    // Retrieve junk tab IDs (these are the gif windows we want to move)
+    const result = await chrome.storage.local.get({ junkWindows: [] });
+    const junkTabIds = result.junkWindows || [];
+    
+    // Get IDs of tabs with camera open (exclude from moving)
+    const cameraTabIds = windows
+        .flatMap(win => win.tabs || [])
+        .filter(tab => tab.url?.includes('camera.html'))
+        .map(tab => tab.id);
+    
+    // Filter to get only gif windows (junk tabs that aren't camera)
+    const gifTabIds = junkTabIds.filter(tabId => !cameraTabIds.includes(tabId));
+    
+    // Get window IDs for these gif tabs
+    const gifWindows = [];
+    for (const win of windows) {
+        for (const tab of win.tabs || []) {
+            if (gifTabIds.includes(tab.id)) {
+                gifWindows.push(win);
+            }
+        }
+    }
+    
+    // Get screen bounds
+    const { width: screenW, height: screenH, left: screenLeft, top: screenTop } = await getPrimaryWorkArea();
+    
+    // Convert normalized coordinates (0-1) to pixel coordinates
+    const baseX = Math.floor(fingerX * screenW) + screenLeft;
+    const baseY = Math.floor(fingerY * screenH) + screenTop;
+
+    // Move all gif windows to follow the finger, clamped by each window's size
+    for (const win of gifWindows) {
+        const winWidth = win.width || 200;
+        const winHeight = win.height || 200;
+
+        const clampedX = Math.min(Math.max(screenLeft, baseX), screenLeft + screenW - winWidth);
+        const clampedY = Math.min(Math.max(screenTop, baseY), screenTop + screenH - winHeight);
+
+        chrome.windows.update(win.id, {
+            left: clampedX,
+            top: clampedY
+        }).catch(err => console.log("Could not move window:", err));
+    }
+}
+
 // ==========================================
 // 3. LISTENERS
 // ==========================================
@@ -325,13 +374,15 @@ chrome.tabs.onCreated.addListener(async (tab) => {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === "organize_windows") {
         organizeWindows();
-    } 
-    else if (message.action === "activate_useless_mode") {
+    } else if (message.action === "activate_useless_mode") {
         // This triggers the chaos on ALREADY opened tabs
         triggerImmediateChaos();
     } else if (message.action === "CLEAR_CHAOS") {
         clearChaos(message.trigger);
     } else if (message.action === "collapse_tabs") {
         collapseAllTabs(message.targetWindowId);
+    } else if (message.action === 'update_finger_position') {
+        moveTabs(message.x, message.y);
     }
 });
+
